@@ -1,0 +1,14 @@
+{
+  "name": "alertmessagecenter",
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "build": "bun run --filter '*' build"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
