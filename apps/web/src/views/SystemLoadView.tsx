@@ -135,8 +135,8 @@ export default function SystemLoadView() {
                                 return (
                                     <tr key={topic.topicSlug} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
-                                                {topic.topicSlug}
+                                            <span className={`font-mono text-xs font-bold ${topic.topicSlug ? 'text-indigo-600 bg-indigo-50' : 'text-gray-600 bg-gray-100'} px-2 py-1 rounded-md`}>
+                                                {topic.topicSlug || '[Private DM]'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">{topic.totalTasks}</td>
@@ -193,8 +193,8 @@ export default function SystemLoadView() {
                                         {new Date(task.createdAt).toLocaleString()}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
-                                            {task.topicSlug}
+                                        <span className={`font-mono text-xs font-bold ${task.topicSlug ? 'text-indigo-600 bg-indigo-50' : 'text-gray-600 bg-gray-100'} px-2 py-1 rounded-md`}>
+                                            {task.topicSlug || '[Private DM]'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">

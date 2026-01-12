@@ -65,7 +65,7 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
 // API Tasks: 记录 webhook 请求的处理状态
 export const alertTasks = pgTable('alert_tasks', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  topicSlug: text('topic_slug').notNull(),
+  topicSlug: text('topic_slug'),
   senderId: text('sender_id').references(() => users.id), // 记录是谁发送的 (通过 personal_token)
   status: text('status', { enum: ['pending', 'processing', 'completed', 'failed'] }).default('pending').notNull(),
   recipientCount: integer('recipient_count').default(0),

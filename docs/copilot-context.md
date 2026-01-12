@@ -6,7 +6,10 @@ This document provides technical context, architectural decisions, and code conv
 
 **Alert Message Center** (formerly Alert Manager) is a centralized alert dispatching system.
 - **Goal**: Decouple alert sources from alert recipients.
-- **Mechanism**: Alerts are sent to a **Topic**. Users subscribe to Topics. The system dispatches alerts to subscribers via **Feishu (Lark) Private Messages**.
+- **Mechanism**:
+  - **Topics**: Alerts are sent to a **Topic**. Users subscribe to Topics to receive messages.
+  - **Personal Inbox**: Users can send alerts directly to themselves via a private webhook URL, bypassing Topic creation and approval.
+  - **Dispatch**: The system sends messages via **Feishu (Lark) Private Messages**.
 - **Runtime**: Bun (JavaScript/TypeScript runtime).
 
 ## 2. Tech Stack
@@ -15,7 +18,7 @@ This document provides technical context, architectural decisions, and code conv
 - **Backend**:
   - **Runtime**: Bun.
   - **Framework**: Hono (Web Standard based).
-  - **Database**: SQLite (via `better-sqlite3`).
+  - **Database**: PostgreSQL.
   - **ORM**: Drizzle ORM.
   - **Authentication**: Feishu OAuth2 (Session-based with cookies).
   - **External API**: Feishu Open Platform (Server-side API).
@@ -37,6 +40,9 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - `name`: Display name (e.g., "Payment Service Errors").
     - `slug`: URL-safe identifier (e.g., `payment-errors`). Used in webhook URLs.
     - `description`: Optional text.
+    - `status`: `pending`, `approved`, or `rejected`.
+    - `createdBy`: Foreign Key -> `users.id`.
+    - `approvedBy`: Foreign Key -> `users.id`.
 
 2.  **User** (`users`)
     - `id`: UUID (Primary Key).
@@ -60,18 +66,26 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   3. Server exchanges code for token, gets user info, creates/updates user in DB.
   4. Server sets `session` cookie (httpOnly).
 - **Context**: `AuthContext.tsx` manages user state on frontend.
+ 
+### Personal Inbox (Direct Messaging)
+- **Strategy**: Direct delivery to a specific user.
+- **Mechanism**:
+  1. Each user has a `personalToken`.
+  2. Sending to `POST /api/webhook/:token/dm` routes messages directly to the user associated with the token.
+  3. No Topic or Subscription is required.
 
 ### Alert Ingestion & Dispatch
 **File**: `apps/server/src/webhook.ts`
 
-1.  **Ingest**: `POST /api/webhook/:slug` receives a JSON payload.
+1.  **Ingest**:
+    - **Topic-based**: `POST /api/webhook/:token/topic/:slug`
+    - **Direct (Inbox)**: `POST /api/webhook/:token/dm`
 2.  **Lookup**:
-    - Find `Topic` by `slug`.
-    - Fetch all `subscriptions` for this topic, including the associated `user`.
+    - For Topic-based: Find `Topic` by `slug` and fetch all `subscriptions`.
+    - For Direct: Identify the user via `token`.
 3.  **Dispatch**:
-    - Iterate through subscribers.
-    - For each user, call `FeishuClient.sendMessage`.
-    - **Payload**: The `content` and `msg_type` from the request body are passed directly to Feishu.
+    - Call `FeishuClient.sendMessage` for each recipient.
+    - **Payload**: Supports `text` and `interactive` (Feishu Card) message types.
 
 ### Subscription Management
 - Users can subscribe/unsubscribe themselves to any topic.
@@ -103,7 +117,8 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 
 
 ### Webhook
-- `POST /api/webhook/:slug`: Trigger an alert for a topic.
+- `POST /api/webhook/:token/topic/:slug`: Trigger an alert for a topic.
+- `POST /api/webhook/:token/dm`: Trigger a direct alert to the user's private inbox.
 
 ## 6. Future Roadmap (Planned)
 
