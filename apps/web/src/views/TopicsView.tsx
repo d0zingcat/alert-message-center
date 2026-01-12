@@ -197,6 +197,12 @@ export default function TopicsView() {
     return `${baseUrl}/webhook/${currentUser.personalToken}/topic/${topicSlug}`;
   };
 
+  const getDmWebhookUrl = () => {
+    if (!currentUser?.personalToken) return '';
+    const baseUrl = ((import.meta as any).env.VITE_WEBHOOK_BASE_URL || window.location.origin).replace(/\/$/, '');
+    return `${baseUrl}/webhook/${currentUser.personalToken}/dm`;
+  };
+
   if (loading) return <div className="p-4">Loading...</div>;
 
   return (
@@ -208,9 +214,56 @@ export default function TopicsView() {
             <div className="mt-2 text-sm text-indigo-700">
               <ul className="list-disc pl-5 space-y-1">
                 <li><strong>Subscribe:</strong> Click <span className="text-green-700 font-semibold">Subscribe</span> on any topic to start receiving alerts via Feishu private message.</li>
-                <li><strong>Personal Webhook:</strong> Each topic provides a <span className="font-semibold">unique URL</span> just for you. Send JSON alerts to this URL to notify yourself.</li>
+                <li><strong>Personal Webhook:</strong> Use topic-specific URLs to notify all subscribers, or use your <span className="font-semibold text-indigo-900">Personal Inbox</span> to notify only yourself.</li>
                 <li><strong>Need more?</strong> If you can't find a suitable topic, click <span className="font-semibold">Request Topic</span> to ask admins for a new one.</li>
               </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-10">
+        <div className="flex items-center mb-4">
+          <ShieldCheck className="w-6 h-6 text-indigo-600 mr-2" />
+          <h2 className="text-xl font-bold text-gray-900">Personal Inbox</h2>
+        </div>
+        <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg border-b-4 border-indigo-800">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex-1">
+              <p className="text-indigo-100 text-sm mb-2 font-medium">Your private alert endpoint. No topic required.</p>
+              <div className="bg-indigo-900/40 rounded-lg p-3 border border-indigo-400/30 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] uppercase tracking-widest text-indigo-300 font-bold">Inbox Webhook URL</span>
+                  <button
+                    onClick={() => copyToClipboard(getDmWebhookUrl(), 'personal-dm')}
+                    className="flex items-center text-xs hover:text-indigo-200 transition-colors"
+                  >
+                    {copiedId === 'personal-dm' ? (
+                      <>
+                        <Check className="w-3 h-3 mr-1 text-green-400" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 mr-1" />
+                        Copy URL
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="font-mono text-xs break-all select-all text-indigo-100 leading-relaxed">
+                  {getDmWebhookUrl()}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/10">
+              <div className="bg-indigo-500/30 p-2.5 rounded-lg border border-white/20">
+                <Copy className="w-6 h-6" />
+              </div>
+              <div className="text-sm">
+                <div className="font-bold">Direct Push</div>
+                <div className="text-indigo-200 text-xs">Always delivered to you</div>
+              </div>
             </div>
           </div>
         </div>

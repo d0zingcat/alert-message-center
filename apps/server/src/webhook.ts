@@ -161,6 +161,106 @@ webhook.post('/:token/topic/:slug', async (c) => {
   });
 });
 
+webhook.post('/:token/dm', async (c) => {
+  const token = c.req.param('token');
+  console.log(`[Webhook] Received DM request for token: ${token}`);
+
+  // 0. Find the User by Token
+  const user = await db.query.users.findFirst({
+    where: eq(users.personalToken, token),
+  });
+
+  if (!user) {
+    console.warn(`[Webhook] Invalid personal token: ${token}`);
+    return c.json({ error: 'Invalid personal token' }, 401);
+  }
+
+  if (!user.feishuUserId) {
+    return c.json({ error: 'User has no Feishu ID linked' }, 400);
+  }
+
+  let body;
+  try {
+    const rawBody = await c.req.text();
+    if (!rawBody || rawBody.trim() === '') {
+      return c.json({ error: 'Empty body' }, 400);
+    }
+    body = JSON.parse(rawBody);
+  } catch (e) {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  // 1. Create Task (topicSlug is null for DM)
+  const [task] = await db.insert(alertTasks).values({
+    topicSlug: null,
+    senderId: user.id,
+    status: 'processing',
+    recipientCount: 1,
+    successCount: 0,
+    payload: body,
+  }).returning();
+
+  // 2. Send Message
+  (async () => {
+    try {
+      let msgType = body.msg_type || 'text';
+      let content = body.content;
+
+      if (!content) {
+        msgType = 'text';
+        content = { text: JSON.stringify(body, null, 2) };
+      }
+
+      // Add metadata
+      if (msgType === 'text' && content.text) {
+        content.text = `[Direct Message]\n${content.text}`;
+      }
+      if (msgType === 'interactive' && content.header) {
+        content.header.title.content = `[DM] ${content.header.title.content}`;
+      }
+
+      const idType = user.feishuUserId.startsWith('ou_') ? 'open_id' : 'user_id';
+      await feishuClient.sendMessage(user.feishuUserId, idType, msgType, content);
+
+      // Update Task
+      await db.update(alertTasks).set({
+        status: 'completed',
+        successCount: 1,
+        updatedAt: new Date(),
+      }).where(eq(alertTasks.id, task.id));
+
+      // Insert Log
+      await db.insert(alertLogs).values({
+        taskId: task.id,
+        userId: user.id,
+        status: 'sent',
+      });
+
+    } catch (error: any) {
+      console.error(`Failed to send DM to user ${user.name}:`, error);
+      await db.update(alertTasks).set({
+        status: 'failed',
+        updatedAt: new Date(),
+        error: error.message,
+      }).where(eq(alertTasks.id, task.id));
+
+      await db.insert(alertLogs).values({
+        taskId: task.id,
+        userId: user.id,
+        status: 'failed',
+        error: error.message,
+      });
+    }
+  })();
+
+  return c.json({
+    message: 'DM received and processing started',
+    taskId: task.id,
+    status: 'processing',
+    recipientCount: 1
+  });
+});
+
 // Help message for non-POST requests or malformed URLs
 webhook.all('/:token/topic/:slug', (c) => {
   return c.json({
