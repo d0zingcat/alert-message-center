@@ -67,6 +67,29 @@ cd apps/server && bun run db:push
 bun run dev
 ```
 
+### 3. Docker 部署
+项目支持使用 Docker Compose 快速部署：
+
+```bash
+# 复制并填写环境变量
+cp apps/server/.env.example .env
+
+# 启动所有服务 (Postgres + Server + Web)
+docker-compose up -d
+```
+
+---
+
+## 🏗️ CI/CD
+
+项目通过 GitHub Actions 实现了自动化流水线：
+
+- **自动化构建**: 每次推送至 `main` 分支或提交 Pull Request 时，会自动触发 Docker 镜像构建。
+- **镜像仓库**: 构建生成的镜像会同步推送到 GitHub Container Registry (GHCR)。
+- **镜像路径**:
+    - `ghcr.io/${USER}/alert-message-center-server`
+    - `ghcr.io/${USER}/alert-message-center-web`
+
 ---
 
 ## 📡 Webhook 使用指南
