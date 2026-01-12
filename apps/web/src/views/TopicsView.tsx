@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Settings, UserPlus, UserMinus, Copy, Check } from 'lucide-react';
+import { Plus, Settings, UserPlus, UserMinus, Copy, Check, User, ShieldCheck } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { client } from '../lib/client';
@@ -21,6 +21,8 @@ interface Topic {
   slug: string;
   description?: string;
   subscriptions: Subscription[];
+  creator?: User;
+  approver?: User;
 }
 
 export default function TopicsView() {
@@ -281,6 +283,20 @@ export default function TopicsView() {
                         <p className="flex items-center text-sm text-gray-500 mt-1">
                           {topic.description}
                         </p>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
+                          {topic.creator && (
+                            <div className="flex items-center text-xs text-gray-500">
+                              <User className="w-3 h-3 mr-1 text-gray-400" />
+                              <span>Created by: <span className="text-gray-900 font-medium">{topic.creator.name}</span></span>
+                            </div>
+                          )}
+                          {topic.approver && (
+                            <div className="flex items-center text-xs text-gray-500">
+                              <ShieldCheck className="w-3 h-3 mr-1 text-indigo-400" />
+                              <span>Approved by: <span className="text-gray-900 font-medium">{topic.approver.name}</span></span>
+                            </div>
+                          )}
+                        </div>
                         {currentUser && (
                           <div className="mt-3 bg-gray-50 p-2 rounded border border-gray-200">
                             <div className="flex justify-between items-center">
@@ -358,7 +374,10 @@ export default function TopicsView() {
                         <div className="mt-2 text-sm text-gray-500">
                           <p>Slug: <span className="font-mono">{req.slug}</span></p>
                           {req.description && <p className="mt-1">{req.description}</p>}
-                          <p className="mt-1 text-xs text-gray-400">Requested on: {new Date(req.createdAt).toLocaleDateString()}</p>
+                          <p className="mt-1 text-xs text-gray-400">
+                            Requested on: {new Date(req.createdAt).toLocaleDateString()}
+                            {req.approver && <span className="ml-2">| Approved by: {req.approver.name}</span>}
+                          </p>
                         </div>
                       </div>
                     </div>

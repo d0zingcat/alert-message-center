@@ -1,3 +1,4 @@
+export { };
 
 async function run() {
     console.log('Fetching dashboard stats as admin...');

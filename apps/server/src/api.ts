@@ -32,6 +32,8 @@ api.get('/topics', requireAuth, async (c) => {
   const allTopics = await db.query.topics.findMany({
     where: eq(topics.status, 'approved'),
     with: {
+      creator: true,
+      approver: true,
       subscriptions: {
         where: (subscriptions, { eq }) =>
           isAdmin ? undefined : (currentUserId ? eq(subscriptions.userId, currentUserId) : undefined),
@@ -59,6 +61,7 @@ api.get('/topics/all', requireAdmin, async (c) => {
   const allTopics = await db.query.topics.findMany({
     with: {
       creator: true,
+      approver: true,
       subscriptions: true
     },
     orderBy: [desc(topics.createdAt)]
@@ -71,14 +74,18 @@ api.get('/topics/my-requests', requireAuth, async (c) => {
   const requests = await db.query.topics.findMany({
     where: eq(topics.createdBy, session.id),
     orderBy: [desc(topics.createdAt)],
+    with: {
+      approver: true,
+    }
   });
   return c.json(requests);
 });
 
 api.post('/topics/:id/approve', requireAdmin, async (c) => {
   const id = c.req.param('id');
+  const session = c.get('session');
   const result = await db.update(topics)
-    .set({ status: 'approved' })
+    .set({ status: 'approved', approvedBy: session.id })
     .where(eq(topics.id, id))
     .returning();
   return c.json(result[0]);
@@ -105,6 +112,7 @@ api.post('/topics', requireAuth, zValidator('json', topicSchema), async (c) => {
     ...body,
     status,
     createdBy: session.id,
+    approvedBy: session.isAdmin ? session.id : null,
   }).returning();
   return c.json(result[0]);
 });

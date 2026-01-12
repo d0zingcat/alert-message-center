@@ -9,6 +9,7 @@ export const topics = pgTable('topics', {
   description: text('description'),
   status: text('status', { enum: ['pending', 'approved', 'rejected'] }).default('approved').notNull(),
   createdBy: text('created_by').references(() => users.id),
+  approvedBy: text('approved_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -17,6 +18,12 @@ export const topicsRelations = relations(topics, ({ many, one }) => ({
   creator: one(users, {
     fields: [topics.createdBy],
     references: [users.id],
+    relationName: 'creator',
+  }),
+  approver: one(users, {
+    fields: [topics.approvedBy],
+    references: [users.id],
+    relationName: 'approver',
   }),
 }));
 
@@ -31,6 +38,8 @@ export const users = pgTable('users', {
 
 export const usersRelations = relations(users, ({ many }) => ({
   subscriptions: many(subscriptions),
+  createdTopics: many(topics, { relationName: 'creator' }),
+  approvedTopics: many(topics, { relationName: 'approver' }),
 }));
 
 // Subscriptions: 用户直接订阅 Topic

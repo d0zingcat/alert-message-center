@@ -1,3 +1,4 @@
+export { };
 
 // Simulate admin checking requests
 async function run() {
