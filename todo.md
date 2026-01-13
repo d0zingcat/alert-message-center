@@ -21,5 +21,5 @@
 - [x] **Admin Topic Management**: Approve, reject, and delete topics (with audit trail).
 - [x] **Personal Inbox**: Direct alert delivery bypassing topics.
 - [ ] **Retry Mechanism**: Handle Feishu API failures.
-- [ ] **Deployment**: Dockerfile and deployment scripts.
+- [x] **Deployment**: Dockerfile and CI/CD (GitHub Actions + GHCR).
 

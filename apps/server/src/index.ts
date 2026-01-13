@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { serveStatic } from 'hono/bun';
 import { db } from './db';
 import { topics } from './db/schema';
 import webhook from './webhook';
@@ -14,13 +15,14 @@ app.use('/*', cors({
   credentials: true,
 }));
 
-app.get('/', (c) => {
-  return c.text('Alert Message Center API is running!');
-});
-
+// API Routes
 const routes = app.route('/api/auth', auth)
   .route('/api', api)
   .route('/webhook', webhook);
+
+// Serve static files (Frontend)
+app.use('/*', serveStatic({ root: './public' }));
+app.get('*', serveStatic({ path: './public/index.html' }));
 
 app.onError((err, c) => {
   console.error(`[Global Error] ${c.req.method} ${c.req.url}:`, err);

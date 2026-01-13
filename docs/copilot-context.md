@@ -125,7 +125,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - [ ] **Message Preview**: Preview Feishu card JSON in the UI.
 - [ ] **History/Logs**: Keep a log of sent alerts for auditing.
 - [ ] **Retry Mechanism**: Handle Feishu API failures.
-- [ ] **Deployment**: Dockerfile and deployment scripts.
+- [x] **Deployment**: Dockerfile and deployment scripts.
 
 ## 7. Development Conventions
 
@@ -135,7 +135,8 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - **Type Safety**: strict TypeScript usage. Backend and Frontend share types via Hono RPC or shared interfaces.
 - **Environment Variables**:
   - `FEISHU_APP_ID`, `FEISHU_APP_SECRET`, `REDIRECT_URI`, `ADMIN_EMAILS`.
-- **Administrators**:
-  - Configured via the `ADMIN_EMAILS` environment variable (comma-separated list of emails).
+- **CI/CD**:
+  - GitHub Actions automates the build and push of Docker images to GitHub Container Registry (GHCR).
+  - Images are built for both `apps/server` (Bun) and `apps/web` (Nginx).
 
 
