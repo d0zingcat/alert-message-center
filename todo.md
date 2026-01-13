@@ -22,4 +22,6 @@
 - [x] **Personal Inbox**: Direct alert delivery bypassing topics.
 - [ ] **Retry Mechanism**: Handle Feishu API failures.
 - [x] **Deployment**: Dockerfile and CI/CD (GitHub Actions + GHCR).
+- [x] **Feishu Group Chat**: Event-based group discovery and alerting (App Bot).
+- [x] **Long Connection**: WebSocket support for intranet deployments.
 

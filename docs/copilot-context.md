@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.1.1)
+# Project Context for GitHub Copilot (v1.1.2)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -9,7 +9,8 @@ This document provides technical context, architectural decisions, and code conv
 - **Mechanism**:
   - **Topics**: Alerts are sent to a **Topic**. Users subscribe to Topics to receive messages.
   - **Personal Inbox**: Users can send alerts directly to themselves via a private webhook URL, bypassing Topic creation and approval.
-  - **Dispatch**: The system sends messages via **Feishu (Lark) Private Messages**.
+  - **Group Chat**: Alerts can be dispatched to Feishu Group Chats where the App Bot is a member.
+  - **Dispatch**: The system sends messages via **Feishu (Lark) Private Messages** or **Group Messages**.
 - **Runtime**: Bun (JavaScript/TypeScript runtime).
 
 ## 2. Tech Stack
@@ -21,7 +22,7 @@ This document provides technical context, architectural decisions, and code conv
   - **Database**: PostgreSQL.
   - **ORM**: Drizzle ORM.
   - **Authentication**: Feishu OAuth2 (Session-based with cookies).
-  - **External API**: Feishu Open Platform (Server-side API).
+  - **External API**: Feishu Open Platform (Server-side API via `@larksuiteoapi/node-sdk`).
 - **Frontend**:
   - **Build Tool**: Vite.
   - **Framework**: React.
@@ -56,6 +57,19 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - `userId`: Foreign Key -> `users.id`.
     - **Relationship**: Many-to-Many between Topics and Users.
 
+4.  **Topic Group Chat** (`topic_group_chats`)
+    - `id`: UUID (Primary Key).
+    - `topicId`: Foreign Key -> `topics.id`.
+    - `chatId`: The Feishu `chat_id`.
+    - `name`: Group name (snapshot).
+    - **Relationship**: Many-to-Many between Topics and Feishu Groups.
+
+5.  **Known Group Chat** (`known_group_chats`)
+    - `chatId`: Feishu `chat_id` (Primary Key).
+    - `name`: Group name.
+    - `lastActiveAt`: Timestamp of last event from this group.
+    - **Purpose**: Caches groups the bot has been added to, facilitating easy selection in the UI.
+
 ## 4. Key Workflows
 
 ### Authentication
@@ -87,7 +101,22 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - Call `FeishuClient.sendMessage` for each recipient.
     - **Payload**: Supports `text` and `interactive` (Feishu Card) message types.
 
-### Subscription Management
+    - Call `FeishuClient.sendMessage` for each recipient.
+    - **Payload**: Supports `text` and `interactive` (Feishu Card) message types.
+
+### Feishu Group Chat Integration
+- **Strategy**: App Bot in Group.
+- **Discovery**:
+  - The system listens for `im.chat.member.bot.added_v1` events (via Webhook or WebSocket).
+  - When the bot is added to a group, the group details are cached in `known_group_chats`.
+- **Binding**: Admins bind a Topic to a known Feishu Group in the UI.
+- **Dispatch**: Alerts for the topic are sent to all bound `chat_id`s in addition to individual subscribers.
+
+### Long Connection (WebSocket)
+- **Problem**: Intranet deployments cannot receive public Webhook callbacks from Feishu.
+- **Solution**: Use Feishu Open Platform's WebSocket mode.
+- **Configuration**: Set `FEISHU_USE_WS=true` in `.env`.
+- **Implementation**: Uses `@larksuiteoapi/node-sdk` to establish a persistent connection and receive events like `im.chat.member.bot.added_v1`.
 - Users can subscribe/unsubscribe themselves to any topic.
 - Admins can manage subscriptions for other users globally in `AdminView`.
 - **Topic Deletion**: Centralized in the **Admin Dashboard (All Topics Tab)** to avoid accidental deletion from the main topic list.
@@ -114,7 +143,16 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - `POST /api/topics/:id/subscribe/:userId`: Subscribe.
 - `DELETE /api/topics/:id/subscribe/:userId`: Unsubscribe.
 - `GET /api/users`: List users (Admin only).
+- `GET /api/users`: List users (Admin only).
 
+### Feishu Group Management
+- `GET /api/groups`: List known groups (cached from bot events).
+- `GET /api/topics/:id/groups`: List group bindings for a topic.
+- `POST /api/topics/:id/groups`: Bind a group to a topic.
+- `DELETE /api/topics/:id/groups/:bindingId`: Unbind a group.
+
+### Feishu Event
+- `POST /api/feishu/event`: Endpoint for receiving Feishu events (Webhook mode).
 
 ### Webhook
 - `POST /api/webhook/:token/topic/:slug`: Trigger an alert for a topic.

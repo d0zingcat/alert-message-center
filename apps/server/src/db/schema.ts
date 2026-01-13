@@ -1,7 +1,7 @@
 import { pgTable, text, integer, primaryKey, boolean, jsonb, timestamp } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Topics: 类似于 Kafka 的 Topic 或 告警的 Tag，例如 "payment-service", "prod-env"
+// Topics: 类似于 Kafka 的 Topic 或 告警的 Tag，例如 "payment-service",
 export const topics = pgTable('topics', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   slug: text('slug').notNull().unique(), // 告警发送时使用的 key
@@ -13,8 +13,37 @@ export const topics = pgTable('topics', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Group Chats: App Bot 所在的群绑定
+export const topicGroupChats = pgTable('topic_group_chats', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  topicId: text('topic_id').notNull().references(() => topics.id, { onDelete: 'cascade' }),
+  chatId: text('chat_id').notNull(), // 飞书群 chat_id
+  name: text('name').notNull(),      // 群名称快照
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdBy: text('created_by').references(() => users.id),
+});
+
+export const topicGroupChatsRelations = relations(topicGroupChats, ({ one }) => ({
+  topic: one(topics, {
+    fields: [topicGroupChats.topicId],
+    references: [topics.id],
+  }),
+  creator: one(users, {
+    fields: [topicGroupChats.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Known Group Chats: 机器人已知的群 (通过事件发现)
+export const knownGroupChats = pgTable('known_group_chats', {
+  chatId: text('chat_id').primaryKey(), // 飞书 chat_id
+  name: text('name').notNull(),
+  lastActiveAt: timestamp('last_active_at').defaultNow(),
+});
+
 export const topicsRelations = relations(topics, ({ many, one }) => ({
   subscriptions: many(subscriptions),
+  groupChats: many(topicGroupChats),
   creator: one(users, {
     fields: [topics.createdBy],
     references: [users.id],

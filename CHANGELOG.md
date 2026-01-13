@@ -5,6 +5,19 @@
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
 
+## [1.2.0] - 2026-01-13
+
+### 新增
+- **飞书群聊通知**: 支持将告警发送到飞书群聊 (App Bot 模式)。
+  - 自动发现机器人所在的群组。
+  - 支持在 Topic 中绑定群聊。
+- **长连接模式 (WebSocket)**: 引入 `@larksuiteoapi/node-sdk`，支持通过 WebSocket 接收飞书事件，解决内网环境无法使用 Webhook 的问题。
+  - 可通过 `FEISHU_USE_WS=true` 开启。
+- **UI 改进**: 在 Topic 列表页新增了群聊管理入口。
+
+### 变更
+- **数据库**: 新增 `topic_group_chats` 和 `known_group_chats` 表。
+- **底层架构**: 重构了飞书客户端 (`FeishuClient`) 和事件处理逻辑，统一了 Webhook 和 WebSocket 的事件分发。
 ## [1.1.1] - 2026-01-13
 
 ### 修复

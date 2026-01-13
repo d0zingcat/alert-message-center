@@ -3,7 +3,7 @@ import { eq, and, desc, sql, gt, sum, count } from 'drizzle-orm';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { db } from './db';
-import { topics, users, subscriptions, alertTasks } from './db/schema';
+import { topics, users, subscriptions, alertTasks, topicGroupChats, knownGroupChats } from './db/schema';
 import { requireAuth, requireAdmin, AuthSession } from './middleware';
 
 const api = new Hono<{ Variables: { session: AuthSession } }>();
@@ -12,6 +12,11 @@ const topicSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   description: z.string().optional(),
+});
+
+const groupBindingSchema = z.object({
+  chatId: z.string().min(1),
+  name: z.string().min(1),
 });
 
 const userSchema = z.object({
@@ -168,6 +173,8 @@ api.delete('/users/:id', requireAdmin, async (c) => {
 
 // --- Subscriptions ---
 
+// --- Subscriptions ---
+
 // Users can subscribe themselves or admins can subscribe anyone
 api.post('/topics/:topicId/subscribe/:userId', requireAuth, async (c) => {
   const { topicId, userId } = c.req.param();
@@ -197,6 +204,55 @@ api.delete('/topics/:topicId/subscribe/:userId', requireAuth, async (c) => {
       eq(subscriptions.topicId, topicId),
       eq(subscriptions.userId, userId)
     ));
+  return c.json({ success: true });
+});
+
+// --- Group Bindings (App Bot) ---
+
+// Get list of known groups (for selection)
+api.get('/groups', requireAuth, async (c) => {
+  // Return recent active groups
+  const groups = await db.select().from(knownGroupChats)
+    .orderBy(desc(knownGroupChats.lastActiveAt))
+    .limit(50);
+  return c.json(groups);
+});
+
+// Get bindings for a topic
+api.get('/topics/:id/groups', requireAuth, async (c) => {
+  const topicId = c.req.param('id');
+  const groups = await db.select().from(topicGroupChats)
+    .where(eq(topicGroupChats.topicId, topicId))
+    .orderBy(desc(topicGroupChats.createdAt));
+  return c.json(groups);
+});
+
+// Bind a group to a topic
+api.post('/topics/:id/groups', requireAuth, zValidator('json', groupBindingSchema), async (c) => {
+  const topicId = c.req.param('id');
+  const body = c.req.valid('json');
+  const session = c.get('session');
+
+  const result = await db.insert(topicGroupChats).values({
+    topicId,
+    chatId: body.chatId,
+    name: body.name,
+    createdBy: session.id,
+  }).returning();
+
+  return c.json(result[0]);
+});
+
+// Unbind a group
+api.delete('/topics/:id/groups/:bindingId', requireAuth, async (c) => {
+  const { id: topicId, bindingId } = c.req.param();
+
+  await db.delete(topicGroupChats)
+    .where(and(
+      eq(topicGroupChats.id, bindingId),
+      eq(topicGroupChats.topicId, topicId)
+    ));
+
   return c.json({ success: true });
 });
 

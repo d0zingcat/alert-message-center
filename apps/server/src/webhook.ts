@@ -41,7 +41,8 @@ webhook.post('/:token/topic/:slug', async (c) => {
         with: {
           user: true
         }
-      }
+      },
+      groupChats: true
     }
   });
 
@@ -50,23 +51,40 @@ webhook.post('/:token/topic/:slug', async (c) => {
     return c.json({ error: 'Topic not found' }, 404);
   }
 
-  console.log(`[Webhook] Found topic: ${topic.name}, subscribers: ${topic.subscriptions.length}`);
+  console.log(`[Webhook] Found topic: ${topic.name}`);
 
-  // 2. Collect subscribers
-  const subscribers = topic.subscriptions
+  // 2. Collect recipients
+  const userRecipients = topic.subscriptions
     .map(sub => sub.user)
-    .filter(u => !!u && !!u.feishuUserId);
+    .filter(u => !!u && !!u.feishuUserId)
+    .map(u => ({
+      type: 'user',
+      id: u.id,
+      name: u.name,
+      feishuId: u.feishuUserId,
+      idType: u.feishuUserId.startsWith('ou_') ? 'open_id' : 'user_id'
+    }));
+
+  const groupRecipients = topic.groupChats.map(g => ({
+    type: 'group',
+    id: g.id, // Binding ID
+    name: g.name,
+    feishuId: g.chatId,
+    idType: 'chat_id'
+  }));
+
+  const allRecipients = [...userRecipients, ...groupRecipients];
 
   const [task] = await db.insert(alertTasks).values({
     topicSlug: topic.slug,
     senderId: user.id,
     status: 'processing',
-    recipientCount: subscribers.length,
+    recipientCount: allRecipients.length,
     successCount: 0,
     payload: body,
   }).returning();
 
-  if (subscribers.length === 0) {
+  if (allRecipients.length === 0) {
     await db.update(alertTasks)
       .set({ status: 'completed', updatedAt: new Date() })
       .where(eq(alertTasks.id, task.id));
@@ -78,8 +96,10 @@ webhook.post('/:token/topic/:slug', async (c) => {
     });
   }
 
+  console.log(`[Webhook] Task ${task.id}: Dispatching to ${userRecipients.length} users and ${groupRecipients.length} groups`);
+
   // 4. Send Private Messages asynchronously
-  Promise.allSettled(subscribers.map(async (user) => {
+  Promise.allSettled(allRecipients.map(async (recipient) => {
     try {
       // Construct message content
       let msgType = body.msg_type || 'text';
@@ -88,6 +108,10 @@ webhook.post('/:token/topic/:slug', async (c) => {
       if (!content) {
         msgType = 'text';
         content = { text: JSON.stringify(body, null, 2) };
+        // Deep copy needed? usually content is new obj if we parsed body
+      } else {
+        // Deep clone content to avoid mutating shared object for parallel requests if we modify it
+        content = JSON.parse(JSON.stringify(content));
       }
 
       // Add metadata
@@ -98,13 +122,12 @@ webhook.post('/:token/topic/:slug', async (c) => {
         content.header.title.content = `[${topic.name}] ${content.header.title.content}`;
       }
 
-      const idType = user.feishuUserId.startsWith('ou_') ? 'open_id' : 'user_id';
-      await feishuClient.sendMessage(user.feishuUserId, idType, msgType, content);
+      await feishuClient.sendMessage(recipient.feishuId, recipient.idType as any, msgType, content);
 
-      return { userId: user.id, status: 'sent', error: null };
+      return { recipientId: recipient.id, status: 'sent', error: null };
     } catch (error: any) {
-      console.error(`Failed to send to user ${user.name}:`, error);
-      return { userId: user.id, status: 'failed', error: error.message };
+      console.error(`Failed to send to ${recipient.type} ${recipient.name}:`, error);
+      return { recipientId: recipient.id, status: 'failed', error: error.message };
     }
   })).then(async (results) => {
     const successCount = results.filter(r => r.status === 'fulfilled' && (r.value as any).status === 'sent').length;
@@ -124,22 +147,22 @@ webhook.post('/:token/topic/:slug', async (c) => {
       error: failures > 0 ? `Failed to send to ${failures} recipients` : null,
     }).where(eq(alertTasks.id, task.id));
 
-    // Insert Logs (Optional: insert only failures to save space, or all for audit)
-    // Let's insert all for now
+    // Insert Logs
     const logs = results.map((r, index) => {
-      const user = subscribers[index];
+      const recipient = allRecipients[index];
       if (r.status === 'fulfilled') {
         const val = r.value as any;
         return {
           taskId: task.id,
-          userId: user.id,
+          userId: recipient.type === 'user' ? recipient.id : null, // Only link users
+          // We could add connection to group binding if we altered schema, but for now log it
           status: val.status,
           error: val.error,
         };
       } else {
         return {
           taskId: task.id,
-          userId: user.id,
+          userId: recipient.type === 'user' ? recipient.id : null,
           status: 'failed',
           error: r.reason ? String(r.reason) : 'Unknown error',
         };
@@ -150,14 +173,14 @@ webhook.post('/:token/topic/:slug', async (c) => {
       await db.insert(alertLogs).values(logs as any);
     }
 
-    console.log(`[Webhook] Task ${task.id}: Sent ${successCount}/${subscribers.length} alerts for topic ${slug}`);
+    console.log(`[Webhook] Task ${task.id}: Sent ${successCount}/${allRecipients.length} alerts for topic ${slug}`);
   });
 
   return c.json({
     message: 'Alert received and processing started',
     taskId: task.id,
     status: 'processing',
-    recipientCount: subscribers.length
+    recipientCount: allRecipients.length
   });
 });
 

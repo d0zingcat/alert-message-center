@@ -15,9 +15,14 @@ app.use('/*', cors({
   credentials: true,
 }));
 
+import feishuEvent from './api/feishu-event';
+
+// ...
+
 // API Routes
 const routes = app.route('/api/auth', auth)
   .route('/api', api)
+  .route('/api/feishu/event', feishuEvent)
   .route('/webhook', webhook);
 
 // Serve static files (Frontend)
@@ -33,6 +38,10 @@ app.get('/topics', async (c) => {
   const allTopics = await db.select().from(topics);
   return c.json(allTopics);
 });
+
+// Start WebSocket if enabled
+import { startWebSocket } from './ws';
+startWebSocket();
 
 export type AppType = typeof routes;
 export default app;
