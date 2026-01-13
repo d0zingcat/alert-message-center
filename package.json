@@ -6,7 +6,8 @@
   ],
   "scripts": {
     "dev": "bun run --filter '*' dev",
-    "build": "bun run --filter '*' build"
+    "build": "bun run --filter '*' build",
+    "start": "bun run --filter '@alertmessagecenter/server' start"
   },
   "devDependencies": {
     "bun-types": "latest"

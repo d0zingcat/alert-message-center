@@ -1,8 +1,8 @@
 services:
-  server:
+  app:
     build:
       context: .
-      dockerfile: apps/server/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
@@ -12,15 +12,6 @@ services:
       # ... other envs
     depends_on:
       - postgres
-
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    ports:
-      - "80:80"
-    depends_on:
-      - server
 
   postgres:
     image: postgres:17-alpine
