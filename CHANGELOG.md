@@ -5,6 +5,11 @@
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
 
+## [1.1.1] - 2026-01-13
+
+### 修复
+- **CI/CD**: 修复了由于 Dockerfile 路径重构导致的 GitHub Actions 构建失败问题。
+
 ## [1.1.0] - 2026-01-13
 
 ### 新增
