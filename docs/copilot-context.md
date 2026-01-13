@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot
+# Project Context for GitHub Copilot (v1.1.1)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -133,10 +133,18 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - **Styling**: Use Tailwind utility classes directly in JSX.
 - **Async/Await**: Prefer `async/await` over `.then()`.
 - **Type Safety**: strict TypeScript usage. Backend and Frontend share types via Hono RPC or shared interfaces.
-- **Environment Variables**:
-  - `FEISHU_APP_ID`, `FEISHU_APP_SECRET`, `REDIRECT_URI`, `ADMIN_EMAILS`.
+- **Environment Isolation**:
+  - Each workspace (`apps/server`, `apps/web`) uses its own `.env` file via Bun's `--env-file .env` flag.
+  - Development proxy target for the frontend is configurable via `VITE_API_URL` (default: `http://localhost:3000`).
 - **CI/CD**:
-  - GitHub Actions automates the build and push of Docker images to GitHub Container Registry (GHCR).
-  - Images are built for both `apps/server` (Bun) and `apps/web` (Nginx).
+  - GitHub Actions automates building a multi-stage Docker image and pushing it to GitHub Container Registry (GHCR).
+  - Image path: `ghcr.io/${USER}/alert-message-center`.
+  - Deployment Architecture: A single container runs the Bun server, which serves API requests and static frontend assets (via `hono/bun`'s `serveStatic`).
+
+## 8. Core Documents
+
+- **[README.md](file:///Users/lilithgames/Workspace/dap/alert-message-center/README.md)**: Main project documentation, including quick start, tech stack overview, and Webhook usage guide.
+- **[CHANGELOG.md](file:///Users/lilithgames/Workspace/dap/alert-message-center/CHANGELOG.md)**: Record of version changes, following the Keep a Changelog specification.
+- **[todo.md](file:///Users/lilithgames/Workspace/dap/alert-message-center/todo.md)**: Task tracking and upcoming features.
 
 
