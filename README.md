@@ -86,9 +86,13 @@ docker-compose up -d
 
 - **自动化构建**: 每次推送至 `main` 分支或提交 Pull Request 时，会自动触发 Docker 镜像构建。
 - **镜像仓库**: 构建生成的镜像会同步推送到 GitHub Container Registry (GHCR)。
-- **镜像路径**:
-    - `ghcr.io/${USER}/alert-message-center-server`
-    - `ghcr.io/${USER}/alert-message-center-web`
+- **镜像路径**: `ghcr.io/${USER}/alert-message-center` (包含前后端的统一镜像)
+
+---
+
+## 📜 更新日志
+
+所有版本的详细变更记录请查看 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 
