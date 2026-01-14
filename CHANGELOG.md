@@ -10,6 +10,7 @@
 ### 变更
 - **Linting**: 强化了 Biome 配置，启用了更严格的 `a11y` (可访问性), `suspicious` (可疑代码), `style` (代码规范) 和 `correctness` (正确性) 检查规则。
 - **配置**: 配置 `noUnknownAtRules` 规则以忽略 Tailwind CSS 特有的 At-rules。
+- **CI/CD**: 集成 Biome 检查到 GitHub Actions 工作流，确保在所有 Pull Request 中强制执行代码规范检查。
 
 ### 修复
 - **Web 可访问性**: 为所有按钮添加了显式的 `type="button"` 以符合规范。
