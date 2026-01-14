@@ -1,131 +1,173 @@
-import { pgTable, text, integer, primaryKey, boolean, jsonb, timestamp } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations } from "drizzle-orm";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgTable,
+	primaryKey,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core";
 
 // Topics: 类似于 Kafka 的 Topic 或 告警的 Tag，例如 "payment-service",
-export const topics = pgTable('topics', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  slug: text('slug').notNull().unique(), // 告警发送时使用的 key
-  name: text('name').notNull(),
-  description: text('description'),
-  status: text('status', { enum: ['pending', 'approved', 'rejected'] }).default('approved').notNull(),
-  createdBy: text('created_by').references(() => users.id),
-  approvedBy: text('approved_by').references(() => users.id),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const topics = pgTable("topics", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	slug: text("slug").notNull().unique(), // 告警发送时使用的 key
+	name: text("name").notNull(),
+	description: text("description"),
+	status: text("status", { enum: ["pending", "approved", "rejected"] })
+		.default("approved")
+		.notNull(),
+	createdBy: text("created_by").references(() => users.id),
+	approvedBy: text("approved_by").references(() => users.id),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Group Chats: App Bot 所在的群绑定
-export const topicGroupChats = pgTable('topic_group_chats', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  topicId: text('topic_id').notNull().references(() => topics.id, { onDelete: 'cascade' }),
-  chatId: text('chat_id').notNull(), // 飞书群 chat_id
-  name: text('name').notNull(),      // 群名称快照
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  createdBy: text('created_by').references(() => users.id),
+export const topicGroupChats = pgTable("topic_group_chats", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	topicId: text("topic_id")
+		.notNull()
+		.references(() => topics.id, { onDelete: "cascade" }),
+	chatId: text("chat_id").notNull(), // 飞书群 chat_id
+	name: text("name").notNull(), // 群名称快照
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	createdBy: text("created_by").references(() => users.id),
 });
 
-export const topicGroupChatsRelations = relations(topicGroupChats, ({ one }) => ({
-  topic: one(topics, {
-    fields: [topicGroupChats.topicId],
-    references: [topics.id],
-  }),
-  creator: one(users, {
-    fields: [topicGroupChats.createdBy],
-    references: [users.id],
-  }),
-}));
+export const topicGroupChatsRelations = relations(
+	topicGroupChats,
+	({ one }) => ({
+		topic: one(topics, {
+			fields: [topicGroupChats.topicId],
+			references: [topics.id],
+		}),
+		creator: one(users, {
+			fields: [topicGroupChats.createdBy],
+			references: [users.id],
+		}),
+	}),
+);
 
 // Known Group Chats: 机器人已知的群 (通过事件发现)
-export const knownGroupChats = pgTable('known_group_chats', {
-  chatId: text('chat_id').primaryKey(), // 飞书 chat_id
-  name: text('name').notNull(),
-  lastActiveAt: timestamp('last_active_at').defaultNow(),
+export const knownGroupChats = pgTable("known_group_chats", {
+	chatId: text("chat_id").primaryKey(), // 飞书 chat_id
+	name: text("name").notNull(),
+	lastActiveAt: timestamp("last_active_at").defaultNow(),
 });
 
 export const topicsRelations = relations(topics, ({ many, one }) => ({
-  subscriptions: many(subscriptions),
-  groupChats: many(topicGroupChats),
-  creator: one(users, {
-    fields: [topics.createdBy],
-    references: [users.id],
-    relationName: 'creator',
-  }),
-  approver: one(users, {
-    fields: [topics.approvedBy],
-    references: [users.id],
-    relationName: 'approver',
-  }),
+	subscriptions: many(subscriptions),
+	groupChats: many(topicGroupChats),
+	creator: one(users, {
+		fields: [topics.createdBy],
+		references: [users.id],
+		relationName: "creator",
+	}),
+	approver: one(users, {
+		fields: [topics.approvedBy],
+		references: [users.id],
+		relationName: "approver",
+	}),
 }));
 
-export const users = pgTable('users', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  name: text('name').notNull(),
-  feishuUserId: text('feishu_user_id').notNull(), // 必须有飞书 ID 才能私聊 (open_id 或 user_id)
-  email: text('email').unique(),
-  isAdmin: boolean('is_admin').default(false),
-  personalToken: text('personal_token').notNull().unique().$defaultFn(() => crypto.randomUUID().replace(/-/g, '')),
+export const users = pgTable("users", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	name: text("name").notNull(),
+	feishuUserId: text("feishu_user_id").notNull(), // 必须有飞书 ID 才能私聊 (open_id 或 user_id)
+	email: text("email").unique(),
+	isAdmin: boolean("is_admin").default(false),
+	personalToken: text("personal_token")
+		.notNull()
+		.unique()
+		.$defaultFn(() => crypto.randomUUID().replace(/-/g, "")),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
-  subscriptions: many(subscriptions),
-  createdTopics: many(topics, { relationName: 'creator' }),
-  approvedTopics: many(topics, { relationName: 'approver' }),
+	subscriptions: many(subscriptions),
+	createdTopics: many(topics, { relationName: "creator" }),
+	approvedTopics: many(topics, { relationName: "approver" }),
 }));
 
 // Subscriptions: 用户直接订阅 Topic
-export const subscriptions = pgTable('subscriptions', {
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  topicId: text('topic_id').notNull().references(() => topics.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.userId, t.topicId] }),
-}));
+export const subscriptions = pgTable(
+	"subscriptions",
+	{
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		topicId: text("topic_id")
+			.notNull()
+			.references(() => topics.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(t) => ({
+		pk: primaryKey({ columns: [t.userId, t.topicId] }),
+	}),
+);
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
-  user: one(users, {
-    fields: [subscriptions.userId],
-    references: [users.id],
-  }),
-  topic: one(topics, {
-    fields: [subscriptions.topicId],
-    references: [topics.id],
-  }),
+	user: one(users, {
+		fields: [subscriptions.userId],
+		references: [users.id],
+	}),
+	topic: one(topics, {
+		fields: [subscriptions.topicId],
+		references: [topics.id],
+	}),
 }));
 
 // API Tasks: 记录 webhook 请求的处理状态
-export const alertTasks = pgTable('alert_tasks', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  topicSlug: text('topic_slug'),
-  senderId: text('sender_id').references(() => users.id), // 记录是谁发送的 (通过 personal_token)
-  status: text('status', { enum: ['pending', 'processing', 'completed', 'failed'] }).default('pending').notNull(),
-  recipientCount: integer('recipient_count').default(0),
-  successCount: integer('success_count').default(0),
-  payload: jsonb('payload'), // 存储 webhook body
-  error: text('error'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+export const alertTasks = pgTable("alert_tasks", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	topicSlug: text("topic_slug"),
+	senderId: text("sender_id").references(() => users.id), // 记录是谁发送的 (通过 personal_token)
+	status: text("status", {
+		enum: ["pending", "processing", "completed", "failed"],
+	})
+		.default("pending")
+		.notNull(),
+	recipientCount: integer("recipient_count").default(0),
+	successCount: integer("success_count").default(0),
+	payload: jsonb("payload"), // 存储 webhook body
+	error: text("error"),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Logs for each recipient in a task (optional detail)
-export const alertLogs = pgTable('alert_logs', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  taskId: text('task_id').notNull().references(() => alertTasks.id, { onDelete: 'cascade' }),
-  userId: text('user_id'), // Optional, in case user is deleted later
-  status: text('status', { enum: ['sent', 'failed'] }).notNull(),
-  error: text('error'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const alertLogs = pgTable("alert_logs", {
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	taskId: text("task_id")
+		.notNull()
+		.references(() => alertTasks.id, { onDelete: "cascade" }),
+	userId: text("user_id"), // Optional, in case user is deleted later
+	status: text("status", { enum: ["sent", "failed"] }).notNull(),
+	error: text("error"),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const alertTasksRelations = relations(alertTasks, ({ many, one }) => ({
-  logs: many(alertLogs),
-  sender: one(users, {
-    fields: [alertTasks.senderId],
-    references: [users.id],
-  }),
+	logs: many(alertLogs),
+	sender: one(users, {
+		fields: [alertTasks.senderId],
+		references: [users.id],
+	}),
 }));
 
 export const alertLogsRelations = relations(alertLogs, ({ one }) => ({
-  task: one(alertTasks, {
-    fields: [alertLogs.taskId],
-    references: [alertTasks.id],
-  }),
+	task: one(alertTasks, {
+		fields: [alertLogs.taskId],
+		references: [alertTasks.id],
+	}),
 }));
