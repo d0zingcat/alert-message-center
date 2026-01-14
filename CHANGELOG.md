@@ -10,6 +10,7 @@
 ### 修复
 - **WebSocket 初始化**: 修复了 `@larksuiteoapi/node-sdk` v1.56.0+ 中 WebSocket 初始化不正确的 `TypeError`。现在正确使用了 `WSClient` 类并修复了参数类型错误。
 - **事件处理**: 修正了 `im.chat.member.bot.added_v1` 事件的 Payload 解析逻辑。
+- **Hono 兼容性**: 修正了 `feishu-event.ts` 中 `lark.adaptDefault` 的错误用法。改为使用手动 Challenge 处理和 `eventDispatcher.invoke`，解决了与 Hono 请求/响应对象的兼容性问题引发的编译错误。
 - **群聊解绑**: 增加对 `im.chat.member.bot.deleted_v1` 事件的支持。当机器人被移除群聊时，自动清理 `known_group_chats` 和 `topic_group_chats` 关联，确保订阅关系自动解绑。
 
 ### 新增

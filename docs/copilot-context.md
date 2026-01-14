@@ -69,6 +69,23 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - `name`: Group name.
     - `lastActiveAt`: Timestamp of last event from this group.
     - **Purpose**: Caches groups the bot has been added to, facilitating easy selection in the UI.
+7.  **Alert Task** (`alert_tasks`)
+    - `id`: UUID (Primary Key).
+    - `topicSlug`: The slug of the target topic (or `NULL` for DM).
+    - `senderId`: Foreign Key -> `users.id` (who triggered the webhook).
+    - `status`: `pending`, `processing`, `completed`, or `failed`.
+    - `recipientCount`: Total recipients (subscribers + groups).
+    - `successCount`: Number of successful deliveries.
+    - `payload`: Snapshot of the incoming webhook body (JSONB).
+    - `error`: Last error message if failed.
+    - **Purpose**: Tracks the lifecycle of a single alert ingestion events.
+
+8.  **Alert Log** (`alert_logs`)
+    - `id`: UUID (Primary Key).
+    - `taskId`: Foreign Key -> `alert_tasks.id`.
+    - `userId`: Target user open_id (snapshot).
+    - `status`: `sent` or `failed`.
+    - **Purpose**: Granular tracking for each individual delivery within a task.
 
 ## 4. Key Workflows
 
@@ -157,6 +174,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 
 ### Feishu Event
 - `POST /api/feishu/event`: Endpoint for receiving Feishu events (Webhook mode).
+    - **Note**: This endpoint uses **manual challenge handling** (`lark.generateChallenge`) and `eventDispatcher.invoke` instead of the SDK's `adaptDefault` to maintain compatibility with Hono's non-standard Node.js response object.
 
 ### Webhook
 - `POST /api/webhook/:token/topic/:slug`: Trigger an alert for a topic.
