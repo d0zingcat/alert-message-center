@@ -15,10 +15,6 @@ feishuEvent.post('/', async (c) => {
         });
 
         const body = await c.req.json();
-        const req = {
-            headers: headerRecord,
-            body,
-        };
 
         // Use the official SDK functions directly for Hono compatibility
         // 1. Handle URL verification (Challenge)
