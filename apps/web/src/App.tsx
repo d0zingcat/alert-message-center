@@ -46,6 +46,7 @@ function App() {
 							Please sign in with Feishu to continue
 						</p>
 						<button
+							type="button"
 							onClick={login}
 							className="w-full flex items-center justify-center bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 transition"
 						>
@@ -73,6 +74,7 @@ function App() {
 							<div className="hidden sm:ml-6 sm:flex sm:space-x-8">
 								{user.isAdmin && (
 									<button
+										type="button"
 										onClick={() => setActiveTab("admin")}
 										className={`${
 											activeTab === "admin"
@@ -85,6 +87,7 @@ function App() {
 									</button>
 								)}
 								<button
+									type="button"
 									onClick={() => setActiveTab("topics")}
 									className={`${
 										activeTab === "topics"
@@ -97,6 +100,7 @@ function App() {
 								</button>
 								{user.isAdmin && (
 									<button
+										type="button"
 										onClick={() => setActiveTab("users")}
 										className={`${
 											activeTab === "users"
@@ -119,6 +123,7 @@ function App() {
 								)}
 							</div>
 							<button
+								type="button"
 								onClick={logout}
 								className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 hover:bg-gray-100"
 							>

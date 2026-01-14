@@ -1,6 +1,3 @@
-// Simulate topic creation
-import { client } from "./client"; // This won't work in node script easily due to frontend dependencies
-
 // Let's use fetch directly against the server
 async function run() {
 	console.log("Creating pending topic...");

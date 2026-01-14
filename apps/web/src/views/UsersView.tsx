@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Modal from "../components/Modal";
 import { useAuth } from "../contexts/AuthContext";
 import { client } from "../lib/client";
@@ -23,7 +23,7 @@ export default function UsersView() {
 		email: "",
 	});
 
-	const fetchUsers = async () => {
+	const fetchUsers = useCallback(async () => {
 		setLoading(true);
 		try {
 			const res = await client.api.users.$get(undefined, {
@@ -36,11 +36,11 @@ export default function UsersView() {
 			console.error(err);
 			setLoading(false);
 		}
-	};
+	}, []);
 
 	useEffect(() => {
 		fetchUsers();
-	}, []);
+	}, [fetchUsers]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -89,6 +89,7 @@ export default function UsersView() {
 				<h2 className="text-2xl font-bold text-gray-900">Users</h2>
 				{currentUser?.isAdmin && (
 					<button
+						type="button"
 						onClick={() => setIsModalOpen(true)}
 						className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
 					>
@@ -131,6 +132,7 @@ export default function UsersView() {
 									{currentUser?.isAdmin && (
 										<div className="ml-4 flex items-center space-x-2">
 											<button
+												type="button"
 												onClick={() => handleDelete(user.id)}
 												className="text-red-600 hover:text-red-900 p-2"
 											>
@@ -157,10 +159,14 @@ export default function UsersView() {
 			>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
-						<label className="block text-sm font-medium text-gray-700">
+						<label
+							htmlFor="user-name"
+							className="block text-sm font-medium text-gray-700"
+						>
 							Name
 						</label>
 						<input
+							id="user-name"
 							type="text"
 							required
 							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
@@ -171,10 +177,14 @@ export default function UsersView() {
 						/>
 					</div>
 					<div>
-						<label className="block text-sm font-medium text-gray-700">
+						<label
+							htmlFor="user-feishu"
+							className="block text-sm font-medium text-gray-700"
+						>
 							Feishu User ID
 						</label>
 						<input
+							id="user-feishu"
 							type="text"
 							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
 							value={formData.feishuUserId}
@@ -184,10 +194,14 @@ export default function UsersView() {
 						/>
 					</div>
 					<div>
-						<label className="block text-sm font-medium text-gray-700">
+						<label
+							htmlFor="user-email"
+							className="block text-sm font-medium text-gray-700"
+						>
 							Email
 						</label>
 						<input
+							id="user-email"
 							type="email"
 							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
 							value={formData.email}

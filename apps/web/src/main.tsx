@@ -8,10 +8,13 @@ import "./index.css";
 // Simple routing based on pathname
 const pathname = window.location.pathname;
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-	<React.StrictMode>
-		<AuthProvider>
-			{pathname === "/auth/callback" ? <AuthCallback /> : <App />}
-		</AuthProvider>
-	</React.StrictMode>,
-);
+const rootElement = document.getElementById("root");
+if (rootElement) {
+	ReactDOM.createRoot(rootElement).render(
+		<React.StrictMode>
+			<AuthProvider>
+				{pathname === "/auth/callback" ? <AuthCallback /> : <App />}
+			</AuthProvider>
+		</React.StrictMode>,
+	);
+}

@@ -17,27 +17,40 @@
 		"rules": {
 			"recommended": true,
 			"a11y": {
-				"useButtonType": "off",
-				"noStaticElementInteractions": "off",
-				"useKeyWithClickEvents": "off",
-				"noSvgWithoutTitle": "off",
-				"noLabelWithoutControl": "off"
+				"useButtonType": "error",
+				"noStaticElementInteractions": "error",
+				"useKeyWithClickEvents": "warn",
+				"noSvgWithoutTitle": "warn",
+				"noLabelWithoutControl": "warn"
 			},
 			"suspicious": {
-				"noAssignInExpressions": "off",
-				"noExplicitAny": "off",
-				"noImplicitAnyLet": "off",
-				"noRedeclare": "off",
-				"noUnknownAtRules": "off"
+				"noAssignInExpressions": "error",
+				"noExplicitAny": "warn",
+				"noImplicitAnyLet": "error",
+				"noRedeclare": "error",
+				"noUnknownAtRules": {
+					"level": "error",
+					"options": {
+						"ignore": [
+							"tailwind",
+							"layer",
+							"apply",
+							"variants",
+							"responsive",
+							"screen",
+							"config"
+						]
+					}
+				}
 			},
 			"style": {
-				"noNonNullAssertion": "off",
-				"useNodejsImportProtocol": "off"
+				"noNonNullAssertion": "warn",
+				"useNodejsImportProtocol": "error"
 			},
 			"correctness": {
-				"useExhaustiveDependencies": "off",
-				"noUnusedVariables": "off",
-				"noUnusedImports": "off"
+				"useExhaustiveDependencies": "warn",
+				"noUnusedVariables": "error",
+				"noUnusedImports": "error"
 			}
 		}
 	},

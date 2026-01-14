@@ -21,7 +21,7 @@ webhook.post("/:token/topic/:slug", async (c) => {
 		logger.warn({ token }, "[Webhook] Invalid personal token");
 		return c.json({ error: "Invalid personal token" }, 401);
 	}
-	let body;
+	let body: any;
 	try {
 		const rawBody = await c.req.text();
 		logger.debug({ bodyLength: rawBody.length }, "[Webhook] Received raw body");
@@ -248,14 +248,14 @@ webhook.post("/:token/dm", async (c) => {
 		return c.json({ error: "User has no Feishu ID linked" }, 400);
 	}
 
-	let body;
+	let body: any;
 	try {
 		const rawBody = await c.req.text();
 		if (!rawBody || rawBody.trim() === "") {
 			return c.json({ error: "Empty body" }, 400);
 		}
 		body = JSON.parse(rawBody);
-	} catch (e) {
+	} catch (_e) {
 		return c.json({ error: "Invalid JSON body" }, 400);
 	}
 

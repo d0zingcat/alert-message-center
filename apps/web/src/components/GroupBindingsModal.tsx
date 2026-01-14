@@ -1,5 +1,5 @@
 import { MessageCircle, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { client } from "../lib/client";
 import Modal from "./Modal";
 
@@ -38,16 +38,7 @@ export default function GroupBindingsModal({
 		message: string;
 	} | null>(null);
 
-	useEffect(() => {
-		if (isOpen && topicId) {
-			fetchBindings();
-			fetchKnownGroups();
-			setStatus(null);
-			setSelectedChatId("");
-		}
-	}, [isOpen, topicId]);
-
-	const fetchBindings = async () => {
+	const fetchBindings = useCallback(async () => {
 		try {
 			const res = await client.api.topics[":id"].groups.$get(
 				{
@@ -62,20 +53,28 @@ export default function GroupBindingsModal({
 		} catch (err) {
 			console.error(err);
 		}
-	};
+	}, [topicId]);
 
-	const fetchKnownGroups = async () => {
+	const fetchKnownGroups = useCallback(async () => {
 		try {
 			const res = await client.api.groups.$get(undefined, {
 				init: { credentials: "include" },
 			});
 			const data = await res.json();
-			// Only verify uniqueness if needed, but here we just list what server returns
 			setKnownGroups(data as any);
 		} catch (err) {
 			console.error(err);
 		}
-	};
+	}, []);
+
+	useEffect(() => {
+		if (isOpen && topicId) {
+			fetchBindings();
+			fetchKnownGroups();
+			setStatus(null);
+			setSelectedChatId("");
+		}
+	}, [isOpen, topicId, fetchBindings, fetchKnownGroups]);
 
 	const handleBind = async () => {
 		if (!selectedChatId) return;
@@ -170,6 +169,7 @@ export default function GroupBindingsModal({
 										</span>
 									</div>
 									<button
+										type="button"
 										onClick={() => handleUnbind(binding.id)}
 										className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
 										title="Remove binding"
@@ -206,6 +206,7 @@ export default function GroupBindingsModal({
 							))}
 						</select>
 						<button
+							type="button"
 							onClick={handleBind}
 							disabled={!selectedChatId || loading}
 							className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"

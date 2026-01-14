@@ -9,13 +9,13 @@ import {
 	UserPlus,
 	Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import GroupBindingsModal from "../components/GroupBindingsModal";
 import Modal from "../components/Modal";
 import { useAuth } from "../contexts/AuthContext";
 import { client } from "../lib/client";
 
-interface User {
+interface TopicUser {
 	id: string;
 	name: string;
 	email?: string | null;
@@ -23,7 +23,7 @@ interface User {
 
 interface Subscription {
 	userId: string;
-	user: User;
+	user: TopicUser;
 }
 
 interface Topic {
@@ -32,8 +32,8 @@ interface Topic {
 	slug: string;
 	description?: string;
 	subscriptions: Subscription[];
-	creator?: User;
-	approver?: User;
+	creator?: TopicUser;
+	approver?: TopicUser;
 	createdBy?: string;
 }
 
@@ -41,7 +41,7 @@ export default function TopicsView() {
 	const { user: currentUser } = useAuth();
 	const [topics, setTopics] = useState<Topic[]>([]);
 	const [myRequests, setMyRequests] = useState<any[]>([]);
-	const [users, setUsers] = useState<User[]>([]);
+	const [users, setUsers] = useState<TopicUser[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isSubModalOpen, setIsSubModalOpen] = useState(false);
@@ -59,7 +59,7 @@ export default function TopicsView() {
 		message: string;
 	} | null>(null);
 
-	const fetchTopics = async () => {
+	const fetchTopics = useCallback(async () => {
 		setLoading(true);
 		try {
 			const res = await client.api.topics.$get(undefined, {
@@ -72,9 +72,9 @@ export default function TopicsView() {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, []);
 
-	const fetchMyRequests = async () => {
+	const fetchMyRequests = useCallback(async () => {
 		try {
 			const res = await client.api.topics["my-requests"].$get(undefined, {
 				init: { credentials: "include" },
@@ -84,19 +84,19 @@ export default function TopicsView() {
 		} catch (err) {
 			console.error(err);
 		}
-	};
+	}, []);
 
-	const fetchUsers = async () => {
+	const fetchUsers = useCallback(async () => {
 		try {
 			const res = await client.api.users.$get(undefined, {
 				init: { credentials: "include" },
 			});
 			const data = await res.json();
-			setUsers(data as unknown as User[]);
+			setUsers(data as unknown as TopicUser[]);
 		} catch (err) {
 			console.error(err);
 		}
-	};
+	}, []);
 
 	useEffect(() => {
 		fetchTopics();
@@ -104,7 +104,7 @@ export default function TopicsView() {
 		if (currentUser?.isAdmin) {
 			fetchUsers();
 		}
-	}, [currentUser]);
+	}, [currentUser, fetchMyRequests, fetchTopics, fetchUsers]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -314,6 +314,7 @@ export default function TopicsView() {
 										Inbox Webhook URL
 									</span>
 									<button
+										type="button"
 										onClick={() =>
 											copyToClipboard(getDmWebhookUrl(), "personal-dm")
 										}
@@ -357,6 +358,7 @@ export default function TopicsView() {
 				<div className="flex gap-2">
 					{currentUser && (
 						<button
+							type="button"
 							onClick={() => setIsModalOpen(true)}
 							className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
 						>
@@ -380,6 +382,7 @@ export default function TopicsView() {
 											</p>
 											<div className="flex items-center space-x-2">
 												<button
+													type="button"
 													onClick={() => handleSelfSubscribe(topic)}
 													className={`inline-flex items-center px-3 py-1 border text-xs font-medium rounded-md ${
 														isSubscribed(topic)
@@ -405,6 +408,7 @@ export default function TopicsView() {
 														<>
 															{currentUser.isAdmin && (
 																<button
+																	type="button"
 																	onClick={() => handleSubscriptionClick(topic)}
 																	className="text-gray-400 hover:text-gray-500"
 																	title="Manage Subscriptions"
@@ -413,6 +417,7 @@ export default function TopicsView() {
 																</button>
 															)}
 															<button
+																type="button"
 																onClick={() => handleGroupClick(topic)}
 																className="text-gray-400 hover:text-gray-500"
 																title="Manage Group Chats"
@@ -465,6 +470,7 @@ export default function TopicsView() {
 																Your Personal Webhook
 															</span>
 															<button
+																type="button"
 																onClick={() =>
 																	copyToClipboard(
 																		getWebhookUrl(topic.slug),
@@ -584,10 +590,14 @@ export default function TopicsView() {
 			>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
-						<label className="block text-sm font-medium text-gray-700">
+						<label
+							htmlFor="topic-name"
+							className="block text-sm font-medium text-gray-700"
+						>
 							Name
 						</label>
 						<input
+							id="topic-name"
 							type="text"
 							required
 							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
@@ -598,10 +608,14 @@ export default function TopicsView() {
 						/>
 					</div>
 					<div>
-						<label className="block text-sm font-medium text-gray-700">
+						<label
+							htmlFor="topic-slug"
+							className="block text-sm font-medium text-gray-700"
+						>
 							Slug (Unique ID)
 						</label>
 						<input
+							id="topic-slug"
 							type="text"
 							required
 							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
@@ -612,10 +626,14 @@ export default function TopicsView() {
 						/>
 					</div>
 					<div>
-						<label className="block text-sm font-medium text-gray-700">
+						<label
+							htmlFor="topic-description"
+							className="block text-sm font-medium text-gray-700"
+						>
 							Description
 						</label>
 						<textarea
+							id="topic-description"
 							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
 							value={formData.description}
 							onChange={(e) =>
@@ -700,6 +718,7 @@ export default function TopicsView() {
 					</div>
 					<div className="mt-6 flex justify-end">
 						<button
+							type="button"
 							onClick={() => setIsSubModalOpen(false)}
 							className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
 						>

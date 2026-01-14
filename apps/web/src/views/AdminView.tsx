@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { client } from "../lib/client";
 import SystemLoadView from "./SystemLoadView";
 
@@ -15,6 +15,7 @@ export default function AdminView() {
 				<div className="border-b border-gray-200 mb-6">
 					<nav className="-mb-px flex space-x-8">
 						<button
+							type="button"
 							onClick={() => setActiveTab("load")}
 							className={`${
 								activeTab === "load"
@@ -25,6 +26,7 @@ export default function AdminView() {
 							System Load
 						</button>
 						<button
+							type="button"
 							onClick={() => setActiveTab("requests")}
 							className={`${
 								activeTab === "requests"
@@ -35,6 +37,7 @@ export default function AdminView() {
 							Topic Requests
 						</button>
 						<button
+							type="button"
 							onClick={() => setActiveTab("topics")}
 							className={`${
 								activeTab === "topics"
@@ -59,7 +62,7 @@ function TopicsManagement() {
 	const [topics, setTopics] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 
-	const fetchAllTopics = async () => {
+	const fetchAllTopics = useCallback(async () => {
 		setLoading(true);
 		try {
 			const res = await client.api.topics.all.$get(undefined, {
@@ -72,11 +75,11 @@ function TopicsManagement() {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, []);
 
 	useEffect(() => {
 		fetchAllTopics();
-	}, []);
+	}, [fetchAllTopics]);
 
 	const handleDelete = async (id: string, name: string) => {
 		if (
@@ -160,6 +163,7 @@ function TopicsManagement() {
 							</td>
 							<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
 								<button
+									type="button"
 									onClick={() => handleDelete(topic.id, topic.name)}
 									className="text-red-600 hover:text-red-900"
 								>
@@ -178,7 +182,7 @@ function TopicRequestsList() {
 	const [requests, setRequests] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 
-	const fetchRequests = async () => {
+	const fetchRequests = useCallback(async () => {
 		setLoading(true);
 		try {
 			const res = await client.api.topics.requests.$get(undefined, {
@@ -191,11 +195,11 @@ function TopicRequestsList() {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, []);
 
 	useEffect(() => {
 		fetchRequests();
-	}, []);
+	}, [fetchRequests]);
 
 	const handleAction = async (
 		id: string,
@@ -259,18 +263,21 @@ function TopicRequestsList() {
 						</div>
 						<div className="flex gap-2">
 							<button
+								type="button"
 								onClick={() => handleAction(req.id, "approve")}
 								className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium shadow-sm transition-colors"
 							>
 								Approve
 							</button>
 							<button
+								type="button"
 								onClick={() => handleAction(req.id, "reject")}
 								className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm font-medium transition-colors"
 							>
 								Reject
 							</button>
 							<button
+								type="button"
 								onClick={() => handleAction(req.id, "delete", req.name)}
 								className="px-4 py-2 border border-gray-300 text-gray-600 rounded hover:bg-gray-50 text-sm font-medium transition-colors"
 							>

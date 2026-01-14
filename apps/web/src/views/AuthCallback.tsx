@@ -60,7 +60,10 @@ export default function AuthCallback() {
 					</h2>
 					<p className="text-gray-700">{error}</p>
 					<button
-						onClick={() => (window.location.href = "/")}
+						type="button"
+						onClick={() => {
+							window.location.href = "/";
+						}}
 						className="mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700"
 					>
 						Return to Home

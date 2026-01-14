@@ -1,5 +1,5 @@
 import { Activity, BarChart3, CheckCircle, Clock, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { client } from "../lib/client";
 
 interface Stats {
@@ -24,7 +24,7 @@ export default function SystemLoadView() {
 	const [loading, setLoading] = useState(true);
 	const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-	const fetchStats = async () => {
+	const fetchStats = useCallback(async () => {
 		try {
 			const res = await client.api.stats.$get(undefined, {
 				init: { credentials: "include" },
@@ -47,13 +47,13 @@ export default function SystemLoadView() {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, []);
 
 	useEffect(() => {
 		fetchStats();
 		const interval = setInterval(fetchStats, 10000); // 10s refresh for dynamic feel
 		return () => clearInterval(interval);
-	}, []);
+	}, [fetchStats]);
 
 	if (loading)
 		return (
