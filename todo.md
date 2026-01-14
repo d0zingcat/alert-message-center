@@ -26,4 +26,5 @@
 - [x] **Auto-Cleanup**: Unbind subscriptions when bot is removed from group.
 - [x] **Long Connection**: WebSocket support for intranet deployments.
 - [x] **Structured Logging**: Integrated `pino` for better observability.
+- [x] **Linting**: Tightened Biome rules and resolved all a11y/correctness issues.
 

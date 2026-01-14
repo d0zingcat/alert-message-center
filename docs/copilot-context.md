@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.2.1)
+# Project Context for GitHub Copilot (v1.2.2)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -194,6 +194,11 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - **Styling**: Use Tailwind utility classes directly in JSX.
 - **Async/Await**: Prefer `async/await` over `.then()`.
 - **Type Safety**: strict TypeScript usage. Backend and Frontend share types via Hono RPC or shared interfaces.
+- **Linter & Formatter**:
+  - Framework: [Biome](https://biomejs.dev/).
+  - **Rules**: Strict configuration for `a11y`, `suspicious`, `style`, and `correctness`.
+  - **Tailwind**: `noUnknownAtRules` is configured to ignore Tailwind directives (`@tailwind`, `@apply`, etc.).
+  - **Enforcement**: CI/CD runs `biome check` to ensure compliance. Avoid use of `as any` unless absolutely necessary (e.g., complex API payloads), in which case `// biome-ignore` should include a rationale.
 - **Logging**:
   - Framework: `pino`.
   - **Structured Log**: Use JSON format for easy parsing and aggregation.

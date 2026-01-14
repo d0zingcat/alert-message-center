@@ -4,6 +4,18 @@
 
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
+ 
+## [1.2.2] - 2026-01-14
+
+### 变更
+- **Linting**: 强化了 Biome 配置，启用了更严格的 `a11y` (可访问性), `suspicious` (可疑代码), `style` (代码规范) 和 `correctness` (正确性) 检查规则。
+- **配置**: 配置 `noUnknownAtRules` 规则以忽略 Tailwind CSS 特有的 At-rules。
+
+### 修复
+- **Web 可访问性**: 为所有按钮添加了显式的 `type="button"` 以符合规范。
+- **语义化/ARAI**: 修正了 `Modal` 背景的交互逻辑，将非语义化的 `div` 替换为 `<button>` 并添加了必要的键盘事件与 ARIA 属性。
+- **Hook 依赖**: 在多个视图中使用了 `useCallback` 来确保 `useEffect` 依赖链的稳定性，解决了 `exhaustive-deps` 警告。
+- **代码健壮性**: 修复了 `main.tsx` 中的 Non-null Assertion 并解决了 `TopicsView` 中的类型重声明冲突。
 
 ## [1.2.1] - 2026-01-14
 
