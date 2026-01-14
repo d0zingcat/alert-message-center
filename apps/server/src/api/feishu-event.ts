@@ -31,11 +31,11 @@ feishuEvent.post('/', async (c) => {
         }
 
         // 2. Dispatch event
-        // The dispatcher expects an object containing headers and body
-        const result = await eventDispatcher.invoke({
-            ...req.body,
-            headers: req.headers
-        });
+        // The dispatcher expects an object containing headers and body.
+        // We use Object.create to put headers on the prototype so they are accessible
+        // but not included in JSON.stringify, which preserves signature verification.
+        const payload = Object.assign(Object.create({ headers: headerRecord }), body);
+        const result = await eventDispatcher.invoke(payload);
 
         return c.json(result || {});
     } catch (e) {

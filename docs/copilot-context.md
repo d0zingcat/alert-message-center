@@ -175,6 +175,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 ### Feishu Event
 - `POST /api/feishu/event`: Endpoint for receiving Feishu events (Webhook mode).
     - **Note**: This endpoint uses **manual challenge handling** (`lark.generateChallenge`) and `eventDispatcher.invoke` instead of the SDK's `adaptDefault` to maintain compatibility with Hono's non-standard Node.js response object.
+    - **Signature Verification Hack**: To preserve Feishu's signature verification, the internal `invoke` call uses `Object.create({ headers })` to inject HTTP headers on the prototype of the payload object. This ensures headers are accessible to the SDK's internal verification logic but are **excluded** from `JSON.stringify`, which is critical for matching the SHA256 content checksum.
 
 ### Webhook
 - `POST /api/webhook/:token/topic/:slug`: Trigger an alert for a topic.
@@ -183,9 +184,9 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 ## 6. Future Roadmap (Planned)
 
 - [ ] **Message Preview**: Preview Feishu card JSON in the UI.
-- [ ] **History/Logs**: Keep a log of sent alerts for auditing.
+- [x] **History/Logs**: Tracking for sent alerts (Alert Tasks/Logs).
 - [ ] **Retry Mechanism**: Handle Feishu API failures.
-- [x] **Deployment**: Dockerfile and deployment scripts.
+- [x] **Deployment**: Dockerfile and CI/CD.
 
 ## 7. Development Conventions
 
@@ -201,6 +202,11 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - **Environment Isolation**:
   - Each workspace (`apps/server`, `apps/web`) uses its own `.env` file via Bun's `--env-file .env` flag.
   - Development proxy target for the frontend is configurable via `VITE_API_URL` (default: `http://localhost:3000`).
+- **Critical Environment Variables**:
+  - `FEISHU_ENCRYPT_KEY`: Essential for the `lark.generateChallenge` and event signature verification.
+  - `FEISHU_VERIFICATION_TOKEN`: Used by `EventDispatcher` for event authentication.
+  - `FEISHU_USE_WS`: Set to `true` to enable WebSocket mode (bypasses `feishu-event.ts`).
+  - `ADMIN_EMAILS`: Comma-separated list of emails that automatically receive `isAdmin=true` upon first login.
 - **CI/CD**:
   - GitHub Actions automates building a multi-stage Docker image and pushing it to GitHub Container Registry (GHCR).
   - Image path: `ghcr.io/${USER}/alert-message-center`.
