@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Settings, UserPlus, UserMinus, Copy, Check, User, ShieldCheck } from 'lucide-react';
+import { Plus, Settings, UserPlus, UserMinus, Copy, Check, User, ShieldCheck, Users } from 'lucide-react';
 import Modal from '../components/Modal';
+import GroupBindingsModal from '../components/GroupBindingsModal';
 import { useAuth } from '../contexts/AuthContext';
 import { client } from '../lib/client';
 
@@ -23,6 +24,7 @@ interface Topic {
   subscriptions: Subscription[];
   creator?: User;
   approver?: User;
+  createdBy?: string;
 }
 
 export default function TopicsView() {
@@ -34,6 +36,7 @@ export default function TopicsView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<Topic>>({
@@ -127,6 +130,11 @@ export default function TopicsView() {
   const handleSubscriptionClick = (topic: Topic) => {
     setSelectedTopic(topic);
     setIsSubModalOpen(true);
+  };
+
+  const handleGroupClick = (topic: Topic) => {
+    setSelectedTopic(topic);
+    setIsGroupModalOpen(true);
   };
 
   const toggleSubscription = async (topicId: string, userId: string, isSubscribed: boolean) => {
@@ -315,14 +323,23 @@ export default function TopicsView() {
                             </>
                           )}
                         </button>
-                        {currentUser?.isAdmin && (
+                        {currentUser && (currentUser.isAdmin || currentUser.id === topic.createdBy) && (
                           <>
+                            {currentUser.isAdmin && (
+                              <button
+                                onClick={() => handleSubscriptionClick(topic)}
+                                className="text-gray-400 hover:text-gray-500"
+                                title="Manage Subscriptions"
+                              >
+                                <Settings className="w-5 h-5" />
+                              </button>
+                            )}
                             <button
-                              onClick={() => handleSubscriptionClick(topic)}
+                              onClick={() => handleGroupClick(topic)}
                               className="text-gray-400 hover:text-gray-500"
-                              title="Manage Subscriptions"
+                              title="Manage Group Chats"
                             >
-                              <Settings className="w-5 h-5" />
+                              <Users className="w-5 h-5" />
                             </button>
                           </>
                         )}
@@ -537,6 +554,15 @@ export default function TopicsView() {
           </div>
         </div>
       </Modal>
+
+      {selectedTopic && (
+        <GroupBindingsModal
+          isOpen={isGroupModalOpen}
+          onClose={() => setIsGroupModalOpen(false)}
+          topicId={selectedTopic.id}
+          topicName={selectedTopic.name}
+        />
+      )}
     </div >
   );
 }

@@ -5,6 +5,32 @@
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
 
+## [1.2.1] - 2026-01-14
+
+### 修复
+- **WebSocket 初始化**: 修复了 `@larksuiteoapi/node-sdk` v1.56.0+ 中 WebSocket 初始化不正确的 `TypeError`。现在正确使用了 `WSClient` 类并修复了参数类型错误。
+- **事件处理**: 修正了 `im.chat.member.bot.added_v1` 事件的 Payload 解析逻辑。
+- **Hono 兼容性**: 修正了 `feishu-event.ts` 中 `lark.adaptDefault` 的错误用法。改为使用手动 Challenge 处理和 `eventDispatcher.invoke`，并通过原型链注入 Header 解决了与 Hono 请求/响应对象的兼容性以及签名校验失败的问题。
+- **群聊解绑**: 增加对 `im.chat.member.bot.deleted_v1` 事件的支持。当机器人被移除群聊时，自动清理 `known_group_chats` 和 `topic_group_chats` 关联，确保订阅关系自动解绑。
+
+### 新增
+- **结构化日志**: 引入 `pino` 框架替代 `console.log`，实现结构化 JSON 日志输出。
+  - 在开发环境集成 `pino-pretty` 提供人类友好格式。
+  - 支持通过环境遍历控制日志级别。
+
+## [1.2.0] - 2026-01-13
+
+### 新增
+- **飞书群聊通知**: 支持将告警发送到飞书群聊 (App Bot 模式)。
+  - 自动发现机器人所在的群组。
+  - 支持在 Topic 中绑定群聊。
+- **长连接模式 (WebSocket)**: 引入 `@larksuiteoapi/node-sdk`，支持通过 WebSocket 接收飞书事件，解决内网环境无法使用 Webhook 的问题。
+  - 可通过 `FEISHU_USE_WS=true` 开启。
+- **UI 改进**: 在 Topic 列表页新增了群聊管理入口。
+
+### 变更
+- **数据库**: 新增 `topic_group_chats` 和 `known_group_chats` 表。
+- **底层架构**: 重构了飞书客户端 (`FeishuClient`) 和事件处理逻辑，统一了 Webhook 和 WebSocket 的事件分发。
 ## [1.1.1] - 2026-01-13
 
 ### 修复

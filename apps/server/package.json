@@ -1,6 +1,6 @@
 {
   "name": "@alertmessagecenter/server",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "scripts": {
     "dev": "bun run --env-file .env --watch src/index.ts",
     "start": "bun run src/index.ts",
@@ -11,14 +11,17 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
+    "@larksuiteoapi/node-sdk": "^1.56.1",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.11.3",
+    "pino": "^10.1.1",
     "postgres": "^3.4.8",
     "zod": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "bun-types": "latest",
-    "drizzle-kit": "^0.31.8"
+    "drizzle-kit": "^0.31.8",
+    "pino-pretty": "^13.1.3"
   }
 }

@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.1.1)
+# Project Context for GitHub Copilot (v1.2.1)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -9,7 +9,8 @@ This document provides technical context, architectural decisions, and code conv
 - **Mechanism**:
   - **Topics**: Alerts are sent to a **Topic**. Users subscribe to Topics to receive messages.
   - **Personal Inbox**: Users can send alerts directly to themselves via a private webhook URL, bypassing Topic creation and approval.
-  - **Dispatch**: The system sends messages via **Feishu (Lark) Private Messages**.
+  - **Group Chat**: Alerts can be dispatched to Feishu Group Chats where the App Bot is a member.
+  - **Dispatch**: The system sends messages via **Feishu (Lark) Private Messages** or **Group Messages**.
 - **Runtime**: Bun (JavaScript/TypeScript runtime).
 
 ## 2. Tech Stack
@@ -21,7 +22,7 @@ This document provides technical context, architectural decisions, and code conv
   - **Database**: PostgreSQL.
   - **ORM**: Drizzle ORM.
   - **Authentication**: Feishu OAuth2 (Session-based with cookies).
-  - **External API**: Feishu Open Platform (Server-side API).
+  - **External API**: Feishu Open Platform (Server-side API via `@larksuiteoapi/node-sdk`).
 - **Frontend**:
   - **Build Tool**: Vite.
   - **Framework**: React.
@@ -56,6 +57,36 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - `userId`: Foreign Key -> `users.id`.
     - **Relationship**: Many-to-Many between Topics and Users.
 
+4.  **Topic Group Chat** (`topic_group_chats`)
+    - `id`: UUID (Primary Key).
+    - `topicId`: Foreign Key -> `topics.id`.
+    - `chatId`: The Feishu `chat_id`.
+    - `name`: Group name (snapshot).
+    - **Relationship**: Many-to-Many between Topics and Feishu Groups.
+
+5.  **Known Group Chat** (`known_group_chats`)
+    - `chatId`: Feishu `chat_id` (Primary Key).
+    - `name`: Group name.
+    - `lastActiveAt`: Timestamp of last event from this group.
+    - **Purpose**: Caches groups the bot has been added to, facilitating easy selection in the UI.
+7.  **Alert Task** (`alert_tasks`)
+    - `id`: UUID (Primary Key).
+    - `topicSlug`: The slug of the target topic (or `NULL` for DM).
+    - `senderId`: Foreign Key -> `users.id` (who triggered the webhook).
+    - `status`: `pending`, `processing`, `completed`, or `failed`.
+    - `recipientCount`: Total recipients (subscribers + groups).
+    - `successCount`: Number of successful deliveries.
+    - `payload`: Snapshot of the incoming webhook body (JSONB).
+    - `error`: Last error message if failed.
+    - **Purpose**: Tracks the lifecycle of a single alert ingestion events.
+
+8.  **Alert Log** (`alert_logs`)
+    - `id`: UUID (Primary Key).
+    - `taskId`: Foreign Key -> `alert_tasks.id`.
+    - `userId`: Target user open_id (snapshot).
+    - `status`: `sent` or `failed`.
+    - **Purpose**: Granular tracking for each individual delivery within a task.
+
 ## 4. Key Workflows
 
 ### Authentication
@@ -87,7 +118,26 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - Call `FeishuClient.sendMessage` for each recipient.
     - **Payload**: Supports `text` and `interactive` (Feishu Card) message types.
 
-### Subscription Management
+    - Call `FeishuClient.sendMessage` for each recipient.
+    - **Payload**: Supports `text` and `interactive` (Feishu Card) message types.
+
+### Feishu Group Chat Integration
+- **Strategy**: App Bot in Group.
+- **Discovery**:
+  - The system listens for `im.chat.member.bot.added_v1` events (via Webhook or WebSocket).
+  - When the bot is added to a group, the group details are cached in `known_group_chats`.
+- **Bot Removal**:
+  - The system listens for `im.chat.member.bot.deleted_v1` events.
+  - When the bot is removed, the cached group is deleted from `known_group_chats`.
+  - **Auto-Unbind**: All bindings in `topic_group_chats` for that `chat_id` are automatically deleted to ensure data consistency.
+- **Binding**: Admins bind a Topic to a known Feishu Group in the UI.
+- **Dispatch**: Alerts for the topic are sent to all bound `chat_id`s in addition to individual subscribers.
+
+### Long Connection (WebSocket)
+- **Problem**: Intranet deployments cannot receive public Webhook callbacks from Feishu.
+- **Solution**: Use Feishu Open Platform's WebSocket mode.
+- **Configuration**: Set `FEISHU_USE_WS=true` in `.env`.
+- **Implementation**: Uses `@larksuiteoapi/node-sdk` to establish a persistent connection and receive events like `im.chat.member.bot.added_v1`.
 - Users can subscribe/unsubscribe themselves to any topic.
 - Admins can manage subscriptions for other users globally in `AdminView`.
 - **Topic Deletion**: Centralized in the **Admin Dashboard (All Topics Tab)** to avoid accidental deletion from the main topic list.
@@ -114,7 +164,18 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - `POST /api/topics/:id/subscribe/:userId`: Subscribe.
 - `DELETE /api/topics/:id/subscribe/:userId`: Unsubscribe.
 - `GET /api/users`: List users (Admin only).
+- `GET /api/users`: List users (Admin only).
 
+### Feishu Group Management
+- `GET /api/groups`: List known groups (cached from bot events).
+- `GET /api/topics/:id/groups`: List group bindings for a topic.
+- `POST /api/topics/:id/groups`: Bind a group to a topic.
+- `DELETE /api/topics/:id/groups/:bindingId`: Unbind a group.
+
+### Feishu Event
+- `POST /api/feishu/event`: Endpoint for receiving Feishu events (Webhook mode).
+    - **Note**: This endpoint uses **manual challenge handling** (`lark.generateChallenge`) and `eventDispatcher.invoke` instead of the SDK's `adaptDefault` to maintain compatibility with Hono's non-standard Node.js response object.
+    - **Signature Verification Hack**: To preserve Feishu's signature verification, the internal `invoke` call uses `Object.create({ headers })` to inject HTTP headers on the prototype of the payload object. This ensures headers are accessible to the SDK's internal verification logic but are **excluded** from `JSON.stringify`, which is critical for matching the SHA256 content checksum.
 
 ### Webhook
 - `POST /api/webhook/:token/topic/:slug`: Trigger an alert for a topic.
@@ -123,9 +184,9 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 ## 6. Future Roadmap (Planned)
 
 - [ ] **Message Preview**: Preview Feishu card JSON in the UI.
-- [ ] **History/Logs**: Keep a log of sent alerts for auditing.
+- [x] **History/Logs**: Tracking for sent alerts (Alert Tasks/Logs).
 - [ ] **Retry Mechanism**: Handle Feishu API failures.
-- [x] **Deployment**: Dockerfile and deployment scripts.
+- [x] **Deployment**: Dockerfile and CI/CD.
 
 ## 7. Development Conventions
 
@@ -133,9 +194,19 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - **Styling**: Use Tailwind utility classes directly in JSX.
 - **Async/Await**: Prefer `async/await` over `.then()`.
 - **Type Safety**: strict TypeScript usage. Backend and Frontend share types via Hono RPC or shared interfaces.
+- **Logging**:
+  - Framework: `pino`.
+  - **Structured Log**: Use JSON format for easy parsing and aggregation.
+  - **Contextual Data**: Pass objects as the first argument to `logger` methods (e.g., `logger.error({ err, chatId }, 'message')`) for indexed search.
+  - **Dev Mode**: Uses `pino-pretty` for human-friendly output during development.
 - **Environment Isolation**:
   - Each workspace (`apps/server`, `apps/web`) uses its own `.env` file via Bun's `--env-file .env` flag.
   - Development proxy target for the frontend is configurable via `VITE_API_URL` (default: `http://localhost:3000`).
+- **Critical Environment Variables**:
+  - `FEISHU_ENCRYPT_KEY`: Essential for the `lark.generateChallenge` and event signature verification.
+  - `FEISHU_VERIFICATION_TOKEN`: Used by `EventDispatcher` for event authentication.
+  - `FEISHU_USE_WS`: Set to `true` to enable WebSocket mode (bypasses `feishu-event.ts`).
+  - `ADMIN_EMAILS`: Comma-separated list of emails that automatically receive `isAdmin=true` upon first login.
 - **CI/CD**:
   - GitHub Actions automates building a multi-stage Docker image and pushing it to GitHub Container Registry (GHCR).
   - Image path: `ghcr.io/${USER}/alert-message-center`.

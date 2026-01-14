@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { logger } from './lib/logger';
 import { setCookie, getCookie } from 'hono/cookie';
 import { db } from './db';
 import { users } from './db/schema';
@@ -100,7 +101,7 @@ auth.get('/callback', async (c) => {
       },
     });
   } catch (error) {
-    console.error('OAuth callback error:', error);
+    logger.error({ err: error }, 'OAuth callback error');
     return c.json({ error: 'Authentication failed' }, 500);
   }
 });
@@ -125,7 +126,7 @@ auth.get('/me', (c) => {
     };
     return c.json({ user });
   } catch (error) {
-    console.error('[Auth] Failed to parse session cookie:', error);
+    logger.error({ err: error }, '[Auth] Failed to parse session cookie');
     return c.json({ error: 'Invalid session' }, 401);
   }
 });
