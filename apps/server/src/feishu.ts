@@ -1,11 +1,14 @@
 import * as lark from '@larksuiteoapi/node-sdk';
+import { logger } from './lib/logger';
 
 export class FeishuClient {
   public client: lark.Client;
-  private appId: string;
+  public appId: string;
+  public appSecret: string;
 
   constructor(appId: string, appSecret: string) {
     this.appId = appId;
+    this.appSecret = appSecret;
     this.client = new lark.Client({
       appId: appId,
       appSecret: appSecret,
@@ -31,7 +34,7 @@ export class FeishuClient {
       });
 
       if (response.code !== 0) {
-        console.error('Feishu send message error:', response);
+        logger.error({ response }, 'Feishu send message error');
         throw new Error(`Failed to send message: ${response.msg}`);
       }
       return response.data;
@@ -51,7 +54,7 @@ export class FeishuClient {
       });
 
       if (response.code !== 0) {
-        console.error('Feishu get user access token error:', response);
+        logger.error({ response }, 'Feishu get user access token error');
         throw new Error(`Failed to get user access token: ${response.msg}`);
       }
       return response.data;

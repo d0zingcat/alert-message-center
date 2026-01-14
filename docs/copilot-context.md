@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.1.2)
+# Project Context for GitHub Copilot (v1.2.1)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -109,6 +109,10 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - **Discovery**:
   - The system listens for `im.chat.member.bot.added_v1` events (via Webhook or WebSocket).
   - When the bot is added to a group, the group details are cached in `known_group_chats`.
+- **Bot Removal**:
+  - The system listens for `im.chat.member.bot.deleted_v1` events.
+  - When the bot is removed, the cached group is deleted from `known_group_chats`.
+  - **Auto-Unbind**: All bindings in `topic_group_chats` for that `chat_id` are automatically deleted to ensure data consistency.
 - **Binding**: Admins bind a Topic to a known Feishu Group in the UI.
 - **Dispatch**: Alerts for the topic are sent to all bound `chat_id`s in addition to individual subscribers.
 
@@ -171,6 +175,11 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - **Styling**: Use Tailwind utility classes directly in JSX.
 - **Async/Await**: Prefer `async/await` over `.then()`.
 - **Type Safety**: strict TypeScript usage. Backend and Frontend share types via Hono RPC or shared interfaces.
+- **Logging**:
+  - Framework: `pino`.
+  - **Structured Log**: Use JSON format for easy parsing and aggregation.
+  - **Contextual Data**: Pass objects as the first argument to `logger` methods (e.g., `logger.error({ err, chatId }, 'message')`) for indexed search.
+  - **Dev Mode**: Uses `pino-pretty` for human-friendly output during development.
 - **Environment Isolation**:
   - Each workspace (`apps/server`, `apps/web`) uses its own `.env` file via Bun's `--env-file .env` flag.
   - Development proxy target for the frontend is configurable via `VITE_API_URL` (default: `http://localhost:3000`).

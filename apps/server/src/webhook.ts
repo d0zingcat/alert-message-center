@@ -3,13 +3,14 @@ import { eq } from 'drizzle-orm';
 import { db } from './db';
 import { topics, alertTasks, alertLogs, users } from './db/schema';
 import { feishuClient } from './feishu';
+import { logger } from './lib/logger';
 
 const webhook = new Hono();
 
 webhook.post('/:token/topic/:slug', async (c) => {
   const token = c.req.param('token');
   const slug = c.req.param('slug');
-  console.log(`[Webhook] Received request for token: ${token}, slug: ${slug}`);
+  logger.info({ token, slug }, '[Webhook] Received request');
 
   // 0. Find the User by Token
   const user = await db.query.users.findFirst({
@@ -17,19 +18,19 @@ webhook.post('/:token/topic/:slug', async (c) => {
   });
 
   if (!user) {
-    console.warn(`[Webhook] Invalid personal token: ${token}`);
+    logger.warn({ token }, '[Webhook] Invalid personal token');
     return c.json({ error: 'Invalid personal token' }, 401);
   }
   let body;
   try {
     const rawBody = await c.req.text();
-    console.log(`[Webhook] Raw body length: ${rawBody.length}, content: "${rawBody}"`);
+    logger.debug({ bodyLength: rawBody.length }, '[Webhook] Received raw body');
     if (!rawBody || rawBody.trim() === '') {
       return c.json({ error: 'Empty body' }, 400);
     }
     body = JSON.parse(rawBody);
   } catch (e) {
-    console.error(`[Webhook] Failed to parse JSON body:`, e);
+    logger.error({ err: e }, '[Webhook] Failed to parse JSON body');
     return c.json({ error: 'Invalid JSON body' }, 400);
   }
 
@@ -47,11 +48,11 @@ webhook.post('/:token/topic/:slug', async (c) => {
   });
 
   if (!topic) {
-    console.warn(`[Webhook] Topic not found: ${slug}`);
+    logger.warn({ slug }, '[Webhook] Topic not found');
     return c.json({ error: 'Topic not found' }, 404);
   }
 
-  console.log(`[Webhook] Found topic: ${topic.name}`);
+  logger.info({ topicName: topic.name }, '[Webhook] Found topic');
 
   // 2. Collect recipients
   const userRecipients = topic.subscriptions
@@ -96,7 +97,11 @@ webhook.post('/:token/topic/:slug', async (c) => {
     });
   }
 
-  console.log(`[Webhook] Task ${task.id}: Dispatching to ${userRecipients.length} users and ${groupRecipients.length} groups`);
+  logger.info({
+    taskId: task.id,
+    userCount: userRecipients.length,
+    groupCount: groupRecipients.length
+  }, '[Webhook] Dispatching alerts');
 
   // 4. Send Private Messages asynchronously
   Promise.allSettled(allRecipients.map(async (recipient) => {
@@ -126,7 +131,11 @@ webhook.post('/:token/topic/:slug', async (c) => {
 
       return { recipientId: recipient.id, status: 'sent', error: null };
     } catch (error: any) {
-      console.error(`Failed to send to ${recipient.type} ${recipient.name}:`, error);
+      logger.error({
+        err: error,
+        recipientType: recipient.type,
+        recipientName: recipient.name
+      }, 'Failed to send alert');
       return { recipientId: recipient.id, status: 'failed', error: error.message };
     }
   })).then(async (results) => {
@@ -173,7 +182,12 @@ webhook.post('/:token/topic/:slug', async (c) => {
       await db.insert(alertLogs).values(logs as any);
     }
 
-    console.log(`[Webhook] Task ${task.id}: Sent ${successCount}/${allRecipients.length} alerts for topic ${slug}`);
+    logger.info({
+      taskId: task.id,
+      successCount,
+      totalCount: allRecipients.length,
+      slug
+    }, '[Webhook] Task processed');
   });
 
   return c.json({
@@ -186,7 +200,7 @@ webhook.post('/:token/topic/:slug', async (c) => {
 
 webhook.post('/:token/dm', async (c) => {
   const token = c.req.param('token');
-  console.log(`[Webhook] Received DM request for token: ${token}`);
+  logger.info({ token }, '[Webhook] Received DM request');
 
   // 0. Find the User by Token
   const user = await db.query.users.findFirst({
@@ -194,7 +208,7 @@ webhook.post('/:token/dm', async (c) => {
   });
 
   if (!user) {
-    console.warn(`[Webhook] Invalid personal token: ${token}`);
+    logger.warn({ token }, '[Webhook] Invalid personal token');
     return c.json({ error: 'Invalid personal token' }, 401);
   }
 
@@ -260,7 +274,7 @@ webhook.post('/:token/dm', async (c) => {
       });
 
     } catch (error: any) {
-      console.error(`Failed to send DM to user ${user.name}:`, error);
+      logger.error({ err: error, userName: user.name }, 'Failed to send DM');
       await db.update(alertTasks).set({
         status: 'failed',
         updatedAt: new Date(),

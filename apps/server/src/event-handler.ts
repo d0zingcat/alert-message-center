@@ -1,13 +1,13 @@
 import { db } from './db';
-import { knownGroupChats } from './db/schema';
+import { knownGroupChats, topicGroupChats } from './db/schema';
 import { eq } from 'drizzle-orm';
 import * as lark from '@larksuiteoapi/node-sdk';
+import { logger } from './lib/logger';
 
 export const eventDispatcher = new lark.EventDispatcher({}).register({
     'im.chat.member.bot.added_v1': async (data) => {
-        const payload = data as any;
-        const { chat_id, name } = payload.chat || payload.message?.chat || {};
-        console.log(`[Feishu Event] Bot added to group: ${name} (${chat_id})`);
+        const { chat_id, name } = data as any;
+        logger.info({ chat_id, name }, '[Feishu Event] Bot added to group');
 
         if (chat_id) {
             await db.insert(knownGroupChats).values({
@@ -21,6 +21,15 @@ export const eventDispatcher = new lark.EventDispatcher({}).register({
                     lastActiveAt: new Date(),
                 }
             });
+        }
+    },
+    'im.chat.member.bot.deleted_v1': async (data) => {
+        const { chat_id } = data as any;
+        logger.info({ chat_id }, '[Feishu Event] Bot removed from group');
+
+        if (chat_id) {
+            await db.delete(knownGroupChats).where(eq(knownGroupChats.chatId, chat_id));
+            await db.delete(topicGroupChats).where(eq(topicGroupChats.chatId, chat_id));
         }
     },
 });

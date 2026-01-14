@@ -5,6 +5,18 @@
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
 
+## [1.2.1] - 2026-01-14
+
+### 修复
+- **WebSocket 初始化**: 修复了 `@larksuiteoapi/node-sdk` v1.56.0+ 中 WebSocket 初始化不正确的 `TypeError`。现在正确使用了 `WSClient` 类并修复了参数类型错误。
+- **事件处理**: 修正了 `im.chat.member.bot.added_v1` 事件的 Payload 解析逻辑。
+- **群聊解绑**: 增加对 `im.chat.member.bot.deleted_v1` 事件的支持。当机器人被移除群聊时，自动清理 `known_group_chats` 和 `topic_group_chats` 关联，确保订阅关系自动解绑。
+
+### 新增
+- **结构化日志**: 引入 `pino` 框架替代 `console.log`，实现结构化 JSON 日志输出。
+  - 在开发环境集成 `pino-pretty` 提供人类友好格式。
+  - 支持通过环境遍历控制日志级别。
+
 ## [1.2.0] - 2026-01-13
 
 ### 新增

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { logger } from './lib/logger';
 import { cors } from 'hono/cors';
 import { serveStatic } from 'hono/bun';
 import { db } from './db';
@@ -30,7 +31,7 @@ app.use('/*', serveStatic({ root: './public' }));
 app.get('*', serveStatic({ path: './public/index.html' }));
 
 app.onError((err, c) => {
-  console.error(`[Global Error] ${c.req.method} ${c.req.url}:`, err);
+  logger.error({ err, method: c.req.method, url: c.req.url }, 'Global Error');
   return c.json({ error: err.message || 'Internal Server Error' }, 500);
 });
 
