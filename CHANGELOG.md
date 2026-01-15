@@ -5,6 +5,11 @@
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
 
+## [1.2.7] - 2026-01-15
+
+### 修复
+- **数据库迁移**：修复了在 K8s 环境下执行 `db:migrate:deploy` 时由于相对路径解析失败导致的迁移中断问题。现在使用绝对路径进行稳健解析，并增加了调试日志。
+
 ## [1.2.6] - 2026-01-15
 
 ### 变更
