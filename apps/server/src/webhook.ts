@@ -4,6 +4,7 @@ import { db } from "./db";
 import { alertLogs, alertTasks, topics, users } from "./db/schema";
 import { feishuClient } from "./feishu";
 import { logger } from "./lib/logger";
+import { uuid } from "zod/v4";
 
 type FeishuReceiveIdType = "open_id" | "user_id" | "email" | "chat_id";
 
@@ -134,10 +135,38 @@ webhook.post("/:token/topic/:slug", async (c) => {
 				let msgType = body.msg_type || "text";
 				let content = body.content;
 
+				// Special handling for incomplete payloads (missing 'content')
 				if (!content) {
-					msgType = "text";
-					content = { text: JSON.stringify(body, null, 2) };
-					// Deep copy needed? usually content is new obj if we parsed body
+					// 1. Special case: Unwrap 'card' if provided (convenience for user)
+					if (body.card) {
+						content = body.card;
+						if (!msgType) msgType = "interactive";
+					} else {
+						// 2. Pass-through strategy: Use rest of body as content
+						// Exclude keys that are definitely not part of content
+						// biome-ignore lint/performance/noDelete: usage is limited
+						const { msg_type, token, ...rest } = body;
+						content = rest;
+
+						// 3. Infer msgType if missing
+						if (!msgType) {
+							if (body.post) msgType = "post";
+							else if (body.image_key) msgType = "image";
+							else if (body.file_key && body.image_key) msgType = "media"; // Media has both
+							else if (body.file_key) msgType = "file";
+							else if (body.audio_key) msgType = "audio";
+							else if (body.sticker_key) msgType = "sticker";
+							else if (body.chat_id) msgType = "share_chat";
+							else if (body.user_id) msgType = "share_user";
+							else if (body.header || body.elements) msgType = "interactive"; // Unwrapped card
+							else {
+								// Fallback to text
+								msgType = "text";
+								// For text, content must be simple or stringified
+								content = { text: JSON.stringify(body, null, 2) };
+							}
+						}
+					}
 				} else {
 					// Deep clone content to avoid mutating shared object for parallel requests if we modify it
 					content = JSON.parse(JSON.stringify(content));
@@ -145,7 +174,7 @@ webhook.post("/:token/topic/:slug", async (c) => {
 
 				// Add metadata
 				if (msgType === "text" && content.text) {
-					content.text = `[Topic: ${topic.name}]\n${content.text}`;
+					content.text = `[${topic.name}]\n${content.text}`;
 				}
 				if (msgType === "interactive" && content.header) {
 					content.header.title.content = `[${topic.name}] ${content.header.title.content}`;
@@ -156,6 +185,7 @@ webhook.post("/:token/topic/:slug", async (c) => {
 					recipient.idType,
 					msgType,
 					content,
+					body.uuid,
 				);
 
 				return { recipientId: recipient.id, status: "sent", error: null };
@@ -303,9 +333,67 @@ webhook.post("/:token/dm", async (c) => {
 			let msgType = body.msg_type || "text";
 			let content = body.content;
 
+			// Special handling for incomplete payloads (missing 'content')
 			if (!content) {
-				msgType = "text";
-				content = { text: JSON.stringify(body, null, 2) };
+				// 1. Interactive / Card
+				if ((msgType === "interactive" || !msgType) && body.card) {
+					msgType = "interactive";
+					content = body.card;
+				}
+				// 2. Post (Rich Text)
+				else if ((msgType === "post" || !msgType) && body.post) {
+					msgType = "post";
+					content = { post: body.post };
+				}
+				// 3. Image
+				else if ((msgType === "image" || !msgType) && body.image_key) {
+					msgType = "image";
+					content = { image_key: body.image_key };
+				}
+				// 4. File
+				else if ((msgType === "file" || !msgType) && body.file_key) {
+					msgType = "file";
+					content = { file_key: body.file_key };
+				}
+				// 5. Audio
+				else if ((msgType === "audio" || !msgType) && body.audio_key) {
+					msgType = "audio";
+					content = { file_key: body.audio_key };
+				}
+				// 6. Media (Video)
+				else if (
+					(msgType === "media" || !msgType) &&
+					body.file_key &&
+					body.image_key
+				) {
+					msgType = "media";
+					content = { file_key: body.file_key, image_key: body.image_key };
+				}
+				// 7. Sticker
+				else if ((msgType === "sticker" || !msgType) && body.sticker_key) {
+					msgType = "sticker";
+					content = { file_key: body.sticker_key };
+				}
+				// 8. Share Chat
+				else if ((msgType === "share_chat" || !msgType) && body.chat_id) {
+					msgType = "share_chat";
+					content = { chat_id: body.chat_id };
+				}
+				// 9. Share User
+				else if ((msgType === "share_user" || !msgType) && body.user_id) {
+					msgType = "share_user";
+					content = { user_id: body.user_id };
+				}
+				// Fallback
+				else {
+					if (!msgType || msgType === "text") {
+						msgType = "text";
+						content = { text: JSON.stringify(body, null, 2) };
+					}
+				}
+			} else {
+				// Deep clone content to avoid mutating shared object for parallel requests if we modify it
+				content = JSON.parse(JSON.stringify(content));
 			}
 
 			// Add metadata
@@ -319,11 +407,13 @@ webhook.post("/:token/dm", async (c) => {
 			const idType = user.feishuUserId.startsWith("ou_")
 				? "open_id"
 				: "user_id";
+			const uuid = body.uuid || crypto.randomUUID();
 			await feishuClient.sendMessage(
 				user.feishuUserId,
 				idType,
 				msgType,
 				content,
+				uuid,
 			);
 
 			// Update Task
