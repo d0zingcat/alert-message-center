@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.2.6)
+# Project Context for GitHub Copilot (v1.2.7)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
