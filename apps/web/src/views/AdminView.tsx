@@ -2,6 +2,24 @@ import { useCallback, useEffect, useState } from "react";
 import { client } from "../lib/client";
 import SystemLoadView from "./SystemLoadView";
 
+interface TopicUser {
+	id: string;
+	name: string;
+	email?: string | null;
+}
+
+interface Topic {
+	id: string;
+	name: string;
+	slug: string;
+	description?: string;
+	status: "pending" | "approved" | "rejected";
+	subscriptions?: { id: string }[];
+	creator?: TopicUser;
+	approver?: TopicUser;
+	createdAt: string;
+}
+
 export default function AdminView() {
 	const [activeTab, setActiveTab] = useState("load");
 
@@ -17,33 +35,30 @@ export default function AdminView() {
 						<button
 							type="button"
 							onClick={() => setActiveTab("load")}
-							className={`${
-								activeTab === "load"
+							className={`${activeTab === "load"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							System Load
 						</button>
 						<button
 							type="button"
 							onClick={() => setActiveTab("requests")}
-							className={`${
-								activeTab === "requests"
+							className={`${activeTab === "requests"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							Topic Requests
 						</button>
 						<button
 							type="button"
 							onClick={() => setActiveTab("topics")}
-							className={`${
-								activeTab === "topics"
+							className={`${activeTab === "topics"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							All Topics
 						</button>
@@ -59,7 +74,7 @@ export default function AdminView() {
 }
 
 function TopicsManagement() {
-	const [topics, setTopics] = useState<any[]>([]);
+	const [topics, setTopics] = useState<Topic[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	const fetchAllTopics = useCallback(async () => {
@@ -68,10 +83,21 @@ function TopicsManagement() {
 			const res = await client.api.topics.all.$get(undefined, {
 				init: { credentials: "include" },
 			});
-			const data = await res.json();
-			setTopics(data);
+			if (res.ok) {
+				const data = await res.json();
+				if (Array.isArray(data)) {
+					setTopics(data as unknown as Topic[]);
+				} else {
+					console.error("All topics data is not an array:", data);
+					setTopics([]);
+				}
+			} else {
+				console.error("Failed to fetch all topics:", res.status);
+				setTopics([]);
+			}
 		} catch (error) {
 			console.error(error);
+			setTopics([]);
 		} finally {
 			setLoading(false);
 		}
@@ -141,13 +167,12 @@ function TopicsManagement() {
 							</td>
 							<td className="px-6 py-4 whitespace-nowrap">
 								<span
-									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-										topic.status === "approved"
+									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${topic.status === "approved"
 											? "bg-green-100 text-green-800"
 											: topic.status === "rejected"
 												? "bg-red-100 text-red-800"
 												: "bg-yellow-100 text-yellow-800"
-									}`}
+										}`}
 								>
 									{topic.status}
 								</span>
@@ -179,7 +204,7 @@ function TopicsManagement() {
 }
 
 function TopicRequestsList() {
-	const [requests, setRequests] = useState<any[]>([]);
+	const [requests, setRequests] = useState<Topic[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	const fetchRequests = useCallback(async () => {
@@ -188,10 +213,20 @@ function TopicRequestsList() {
 			const res = await client.api.topics.requests.$get(undefined, {
 				init: { credentials: "include" },
 			});
-			const data = await res.json();
-			setRequests(data);
+			if (res.ok) {
+				const data = await res.json();
+				if (Array.isArray(data)) {
+					setRequests(data as unknown as Topic[]);
+				} else {
+					setRequests([]);
+				}
+			} else {
+				console.error("Failed to fetch requests:", res.status);
+				setRequests([]);
+			}
 		} catch (error) {
 			console.error(error);
+			setRequests([]);
 		} finally {
 			setLoading(false);
 		}

@@ -5,6 +5,16 @@ import { alertLogs, alertTasks, topics, users } from "./db/schema";
 import { feishuClient } from "./feishu";
 import { logger } from "./lib/logger";
 
+type FeishuReceiveIdType = "open_id" | "user_id" | "email" | "chat_id";
+
+interface Recipient {
+	type: "user" | "group";
+	id: string;
+	name: string;
+	feishuId: string;
+	idType: FeishuReceiveIdType;
+}
+
 const webhook = new Hono();
 
 webhook.post("/:token/topic/:slug", async (c) => {
@@ -21,7 +31,8 @@ webhook.post("/:token/topic/:slug", async (c) => {
 		logger.warn({ token }, "[Webhook] Invalid personal token");
 		return c.json({ error: "Invalid personal token" }, 401);
 	}
-	let body: any;
+	// biome-ignore lint/suspicious/noExplicitAny: Webhook body can be any arbitrary JSON
+	let body: Record<string, any>;
 	try {
 		const rawBody = await c.req.text();
 		logger.debug({ bodyLength: rawBody.length }, "[Webhook] Received raw body");
@@ -55,26 +66,31 @@ webhook.post("/:token/topic/:slug", async (c) => {
 	logger.info({ topicName: topic.name }, "[Webhook] Found topic");
 
 	// 2. Collect recipients
-	const userRecipients = topic.subscriptions
+	const userRecipients: Recipient[] = topic.subscriptions
 		.map((sub) => sub.user)
-		.filter((u) => !!u && !!u.feishuUserId)
-		.map((u) => ({
-			type: "user",
-			id: u.id,
-			name: u.name,
-			feishuId: u.feishuUserId,
-			idType: u.feishuUserId.startsWith("ou_") ? "open_id" : "user_id",
-		}));
+		.map((u) => {
+			if (!u || !u.feishuUserId) return null;
+			return {
+				type: "user" as const,
+				id: u.id,
+				name: u.name,
+				feishuId: u.feishuUserId,
+				idType: (u.feishuUserId.startsWith("ou_")
+					? "open_id"
+					: "user_id") as FeishuReceiveIdType,
+			};
+		})
+		.filter((u): u is NonNullable<typeof u> => u !== null);
 
-	const groupRecipients = topic.groupChats.map((g) => ({
+	const groupRecipients: Recipient[] = topic.groupChats.map((g) => ({
 		type: "group",
 		id: g.id, // Binding ID
 		name: g.name,
 		feishuId: g.chatId,
-		idType: "chat_id",
+		idType: "chat_id" as FeishuReceiveIdType,
 	}));
 
-	const allRecipients = [...userRecipients, ...groupRecipients];
+	const allRecipients: Recipient[] = [...userRecipients, ...groupRecipients];
 
 	const [task] = await db
 		.insert(alertTasks)
@@ -137,13 +153,15 @@ webhook.post("/:token/topic/:slug", async (c) => {
 
 				await feishuClient.sendMessage(
 					recipient.feishuId,
-					recipient.idType as any,
+					recipient.idType,
 					msgType,
 					content,
 				);
 
 				return { recipientId: recipient.id, status: "sent", error: null };
-			} catch (error: any) {
+			} catch (error: unknown) {
+				const errorMessage =
+					error instanceof Error ? error.message : String(error);
 				logger.error(
 					{
 						err: error,
@@ -155,22 +173,25 @@ webhook.post("/:token/topic/:slug", async (c) => {
 				return {
 					recipientId: recipient.id,
 					status: "failed",
-					error: error.message,
+					error: errorMessage,
 				};
 			}
 		}),
 	).then(async (results) => {
 		const successCount = results.filter(
-			(r) => r.status === "fulfilled" && (r.value as any).status === "sent",
+			(r) =>
+				r.status === "fulfilled" &&
+				(r.value as { status: string }).status === "sent",
 		).length;
 		const failures = results.filter(
 			(r) =>
 				r.status === "rejected" ||
-				(r.status === "fulfilled" && (r.value as any).status === "failed"),
+				(r.status === "fulfilled" &&
+					(r.value as { status: string }).status === "failed"),
 		).length;
 
 		// Determine final status
-		const finalStatus =
+		const finalStatus: "completed" | "failed" =
 			failures === 0 ? "completed" : successCount > 0 ? "completed" : "failed";
 
 		// Update Task
@@ -189,26 +210,29 @@ webhook.post("/:token/topic/:slug", async (c) => {
 		const logs = results.map((r, index) => {
 			const recipient = allRecipients[index];
 			if (r.status === "fulfilled") {
-				const val = r.value as any;
+				const val = r.value as {
+					status: "sent" | "failed";
+					error: string | null;
+				};
 				return {
 					taskId: task.id,
 					userId: recipient.type === "user" ? recipient.id : null, // Only link users
 					// We could add connection to group binding if we altered schema, but for now log it
-					status: val.status,
+					status: val.status as "sent" | "failed",
 					error: val.error,
 				};
 			} else {
 				return {
 					taskId: task.id,
 					userId: recipient.type === "user" ? recipient.id : null,
-					status: "failed",
-					error: r.reason ? String(r.reason) : "Unknown error",
+					status: "failed" as const,
+					error: r.status === "rejected" ? String(r.reason) : "Unknown error",
 				};
 			}
 		});
 
 		if (logs.length > 0) {
-			await db.insert(alertLogs).values(logs as any);
+			await db.insert(alertLogs).values(logs);
 		}
 
 		logger.info(
@@ -248,7 +272,8 @@ webhook.post("/:token/dm", async (c) => {
 		return c.json({ error: "User has no Feishu ID linked" }, 400);
 	}
 
-	let body: any;
+	// biome-ignore lint/suspicious/noExplicitAny: Webhook body can be any arbitrary JSON
+	let body: Record<string, any>;
 	try {
 		const rawBody = await c.req.text();
 		if (!rawBody || rawBody.trim() === "") {
@@ -315,24 +340,26 @@ webhook.post("/:token/dm", async (c) => {
 			await db.insert(alertLogs).values({
 				taskId: task.id,
 				userId: user.id,
-				status: "sent",
+				status: "sent" as const,
 			});
-		} catch (error: any) {
+		} catch (error: unknown) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
 			logger.error({ err: error, userName: user.name }, "Failed to send DM");
 			await db
 				.update(alertTasks)
 				.set({
 					status: "failed",
 					updatedAt: new Date(),
-					error: error.message,
+					error: errorMessage,
 				})
 				.where(eq(alertTasks.id, task.id));
 
 			await db.insert(alertLogs).values({
 				taskId: task.id,
 				userId: user.id,
-				status: "failed",
-				error: error.message,
+				status: "failed" as const,
+				error: errorMessage,
 			});
 		}
 	})();

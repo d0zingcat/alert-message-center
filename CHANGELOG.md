@@ -5,6 +5,24 @@
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
  
+## [1.2.5] - 2026-01-15
+
+### 修复
+- **前端鲁棒性**: 修复了当数据库为空或 API 返回错误对象时页面发生崩溃（白屏）的问题。
+    - 为 `TopicsView`, `SystemLoadView` 和 `AdminView` 中的所有 API 请求增加了 `res.ok` 和 `Array.isArray` 校验。
+    - 增加了防御性逻辑，确保在数据未加载或加载失败时显示友好的提示而非崩溃。
+- **Vite 环境变量**: 修复了 `TypeError: Cannot read properties of undefined (reading 'VITE_WEBHOOK_BASE_URL')`。
+    - 在 `TopicsView.tsx` 中使用可选链 (`meta.env?.`) 安全地访问 Vite 环境变量，防止由于环境未完全初始化导致的崩溃。
+
+## [1.2.4] - 2026-01-15
+
+### 变更
+- **类型安全**: 全面重构了服务端与前端的代码，消除了绝大部分 `any` 类型的使用。
+    - 在 `webhook.ts`, `verify_permissions.ts`, `feishu.ts` 等核心文件中引入了显式接口。
+    - 改进了 Webhook Body 的处理逻辑，在保持灵活性的同时增强了类型校验。
+    - 修复了多处 Non-null Assertion 为更安全的可选链或显式空值检查。
+- **Linting**: 严格执行 Biome 的 `noExplicitAny` 规则。
+
 ## [1.2.3] - 2026-01-15
 
 ### 新增

@@ -35,12 +35,14 @@ interface Topic {
 	creator?: TopicUser;
 	approver?: TopicUser;
 	createdBy?: string;
+	status?: string;
+	createdAt?: string;
 }
 
 export default function TopicsView() {
 	const { user: currentUser } = useAuth();
 	const [topics, setTopics] = useState<Topic[]>([]);
-	const [myRequests, setMyRequests] = useState<any[]>([]);
+	const [myRequests, setMyRequests] = useState<Topic[]>([]);
 	const [users, setUsers] = useState<TopicUser[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,10 +67,21 @@ export default function TopicsView() {
 			const res = await client.api.topics.$get(undefined, {
 				init: { credentials: "include" },
 			});
-			const data = await res.json();
-			setTopics(data as unknown as Topic[]);
+			if (res.ok) {
+				const data = await res.json();
+				if (Array.isArray(data)) {
+					setTopics(data as unknown as Topic[]);
+				} else {
+					console.error("Topics data is not an array:", data);
+					setTopics([]);
+				}
+			} else {
+				console.error("Failed to fetch topics:", res.status);
+				setTopics([]);
+			}
 		} catch (err) {
 			console.error(err);
+			setTopics([]);
 		} finally {
 			setLoading(false);
 		}
@@ -79,8 +92,12 @@ export default function TopicsView() {
 			const res = await client.api.topics["my-requests"].$get(undefined, {
 				init: { credentials: "include" },
 			});
-			const data = await res.json();
-			setMyRequests(data);
+			if (res.ok) {
+				const data = await res.json();
+				if (Array.isArray(data)) {
+					setMyRequests(data as unknown as Topic[]);
+				}
+			}
 		} catch (err) {
 			console.error(err);
 		}
@@ -91,8 +108,12 @@ export default function TopicsView() {
 			const res = await client.api.users.$get(undefined, {
 				init: { credentials: "include" },
 			});
-			const data = await res.json();
-			setUsers(data as unknown as TopicUser[]);
+			if (res.ok) {
+				const data = await res.json();
+				if (Array.isArray(data)) {
+					setUsers(data as unknown as TopicUser[]);
+				}
+			}
 		} catch (err) {
 			console.error(err);
 		}
@@ -112,7 +133,11 @@ export default function TopicsView() {
 		try {
 			const res = await client.api.topics.$post(
 				{
-					json: formData as any,
+					json: formData as {
+						name: string;
+						slug: string;
+						description?: string;
+					},
 				},
 				{
 					init: { credentials: "include" },
@@ -134,7 +159,7 @@ export default function TopicsView() {
 					setSubmitStatus(null);
 				}, 1500);
 			} else {
-				const error = await res.json();
+				const error = (await res.json()) as { message?: string };
 				setSubmitStatus({
 					type: "error",
 					message: error.message || "Failed to submit request.",
@@ -194,12 +219,20 @@ export default function TopicsView() {
 						const updatedSubs = isSubscribed
 							? t.subscriptions.filter((s) => s.userId !== userId)
 							: [
-									...t.subscriptions,
-									{
-										userId,
-										user: users.find((u) => u.id === userId) || currentUser!,
-									},
-								];
+								...t.subscriptions,
+								{
+									userId,
+									user:
+										users.find((u) => u.id === userId) ||
+										(currentUser
+											? {
+												id: currentUser.id,
+												name: currentUser.name,
+												email: currentUser.email,
+											}
+											: { id: "unknown", name: "Unknown" }),
+								},
+							];
 						return { ...t, subscriptions: updatedSubs };
 					}
 					return t;
@@ -211,12 +244,20 @@ export default function TopicsView() {
 				const updatedSubs = isSubscribed
 					? selectedTopic.subscriptions.filter((s) => s.userId !== userId)
 					: [
-							...selectedTopic.subscriptions,
-							{
-								userId,
-								user: users.find((u) => u.id === userId) || currentUser!,
-							},
-						];
+						...selectedTopic.subscriptions,
+						{
+							userId,
+							user:
+								users.find((u) => u.id === userId) ||
+								(currentUser
+									? {
+										id: currentUser.id,
+										name: currentUser.name,
+										email: currentUser.email,
+									}
+									: { id: "unknown", name: "Unknown" }),
+						},
+					];
 				setSelectedTopic({ ...selectedTopic, subscriptions: updatedSubs });
 			}
 
@@ -226,13 +267,13 @@ export default function TopicsView() {
 		}
 	};
 
-	const isSubscribed = (topic: Topic) => {
+	const isSubscribedToTopic = (topic: Topic) => {
 		return topic.subscriptions.some((sub) => sub.userId === currentUser?.id);
 	};
 
 	const handleSelfSubscribe = async (topic: Topic) => {
 		if (!currentUser) return;
-		const subscribed = isSubscribed(topic);
+		const subscribed = isSubscribedToTopic(topic);
 		await toggleSubscription(topic.id, currentUser.id, subscribed);
 	};
 
@@ -245,16 +286,20 @@ export default function TopicsView() {
 	const getWebhookUrl = (topicSlug: string) => {
 		if (!currentUser?.personalToken) return "";
 		// Use an environment variable if available, otherwise fallback to current origin
+		// biome-ignore lint/suspicious/noExplicitAny: Vite env access
+		const meta = import.meta as any;
 		const baseUrl = (
-			(import.meta as any).env.VITE_WEBHOOK_BASE_URL || window.location.origin
+			meta.env?.VITE_WEBHOOK_BASE_URL || window.location.origin
 		).replace(/\/$/, "");
 		return `${baseUrl}/webhook/${currentUser.personalToken}/topic/${topicSlug}`;
 	};
 
 	const getDmWebhookUrl = () => {
 		if (!currentUser?.personalToken) return "";
+		// biome-ignore lint/suspicious/noExplicitAny: Vite env access
+		const meta = import.meta as any;
 		const baseUrl = (
-			(import.meta as any).env.VITE_WEBHOOK_BASE_URL || window.location.origin
+			meta.env?.VITE_WEBHOOK_BASE_URL || window.location.origin
 		).replace(/\/$/, "");
 		return `${baseUrl}/webhook/${currentUser.personalToken}/dm`;
 	};
@@ -384,13 +429,12 @@ export default function TopicsView() {
 												<button
 													type="button"
 													onClick={() => handleSelfSubscribe(topic)}
-													className={`inline-flex items-center px-3 py-1 border text-xs font-medium rounded-md ${
-														isSubscribed(topic)
+													className={`inline-flex items-center px-3 py-1 border text-xs font-medium rounded-md ${isSubscribedToTopic(topic)
 															? "border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
 															: "border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
-													}`}
+														}`}
 												>
-													{isSubscribed(topic) ? (
+													{isSubscribedToTopic(topic) ? (
 														<>
 															<UserMinus className="w-3 h-3 mr-1" />
 															Unsubscribe
@@ -540,13 +584,12 @@ export default function TopicsView() {
 													</p>
 													<div className="flex items-center">
 														<span
-															className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-																req.status === "approved"
+															className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${req.status === "approved"
 																	? "bg-green-100 text-green-800"
 																	: req.status === "rejected"
 																		? "bg-red-100 text-red-800"
 																		: "bg-yellow-100 text-yellow-800"
-															}`}
+																}`}
 														>
 															{req.status === "approved"
 																? "Approved"
@@ -565,7 +608,9 @@ export default function TopicsView() {
 													)}
 													<p className="mt-1 text-xs text-gray-400">
 														Requested on:{" "}
-														{new Date(req.createdAt).toLocaleDateString()}
+														{req.createdAt
+															? new Date(req.createdAt).toLocaleDateString()
+															: "Unknown"}
 														{req.approver && (
 															<span className="ml-2">
 																| Approved by: {req.approver.name}
@@ -600,7 +645,7 @@ export default function TopicsView() {
 							id="topic-name"
 							type="text"
 							required
-							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 text-gray-900"
 							value={formData.name}
 							onChange={(e) =>
 								setFormData({ ...formData, name: e.target.value })
@@ -618,7 +663,7 @@ export default function TopicsView() {
 							id="topic-slug"
 							type="text"
 							required
-							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 text-gray-900"
 							value={formData.slug}
 							onChange={(e) =>
 								setFormData({ ...formData, slug: e.target.value })
@@ -634,7 +679,7 @@ export default function TopicsView() {
 						</label>
 						<textarea
 							id="topic-description"
-							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 text-gray-900"
 							value={formData.description}
 							onChange={(e) =>
 								setFormData({ ...formData, description: e.target.value })
@@ -643,11 +688,10 @@ export default function TopicsView() {
 					</div>
 					{submitStatus && (
 						<div
-							className={`p-3 rounded-md text-sm ${
-								submitStatus.type === "success"
+							className={`p-3 rounded-md text-sm ${submitStatus.type === "success"
 									? "bg-green-50 text-green-800"
 									: "bg-red-50 text-red-800"
-							}`}
+								}`}
 						>
 							{submitStatus.message}
 						</div>

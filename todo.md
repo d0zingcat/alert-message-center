@@ -28,4 +28,4 @@
 - [x] **Structured Logging**: Integrated `pino` for better observability.
 - [x] **Linting**: Tightened Biome rules and resolved all a11y/correctness issues.
 - [x] **Automated Migrations**: Automatically initialize database schema on startup (especially in Docker).
-
+- [x] **Frontend Resilience**: Hardened API calls to prevent crashes on empty data or env access errors.

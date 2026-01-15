@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.2.3)
+# Project Context for GitHub Copilot (v1.2.5)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -193,12 +193,17 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - **Imports**: Use relative imports.
 - **Styling**: Use Tailwind utility classes directly in JSX.
 - **Async/Await**: Prefer `async/await` over `.then()`.
-- **Type Safety**: strict TypeScript usage. Backend and Frontend share types via Hono RPC or shared interfaces.
+- **Type Safety**: strict TypeScript usage. Backend and Frontend share types via Hono RPC or shared interfaces. **Elimination of `any`** is a priority; use explicit interfaces (e.g., `WebhookBody`, `UserAccessTokenData`) for all externally sourced data.
 - **Linter & Formatter**:
   - Framework: [Biome](https://biomejs.dev/).
   - **Rules**: Strict configuration for `a11y`, `suspicious`, `style`, and `correctness`.
   - **Tailwind**: `noUnknownAtRules` is configured to ignore Tailwind directives (`@tailwind`, `@apply`, etc.).
-  - **Enforcement**: CI/CD runs `biome check` to ensure compliance. Avoid use of `as any` unless absolutely necessary (e.g., complex API payloads), in which case `// biome-ignore` should include a rationale.
+  - **Enforcement**: CI/CD runs `biome check` to ensure compliance. Avoid Use of `as any` is strictly prohibited except for specialized cases like `import.meta as any` (for Vite env) or very complex JSON spread operations. In those rare cases, use `// biome-ignore` with a clear explanation.
+  - **Vite Env Access**: When accessing Vite environment variables via `import.meta.env` (or casting `import.meta as any`), **always use optional chaining** (e.g., `meta.env?.VITE_...`). This prevents crashes if the environment is not initialized or if the code runs in a non-browser context during pre-rendering/testing.
+- **Frontend Resilience**:
+  - Always check `res.ok` before attempting to parse or use API responses.
+  - Use `Array.isArray()` to verify that data expected to be a list actually is one, especially when mapping over it in JSX. This prevents "white page" crashes when the backend returns error objects instead of arrays.
+  - Provide fallback empty states (e.g., `setTopics([])`) in `catch` blocks or failed response branches.
 - **Logging**:
   - Framework: `pino`.
   - **Structured Log**: Use JSON format for easy parsing and aggregation.

@@ -3,6 +3,11 @@ import { db } from "./db";
 import { subscriptions, topics, users } from "./db/schema";
 import app from "./index";
 
+interface TopicWithSubscriptions {
+	id: string;
+	subscriptions: { userId: string }[];
+}
+
 async function verify() {
 	console.log("Starting Verification...");
 	let errors = 0;
@@ -112,9 +117,9 @@ async function verify() {
 			},
 		});
 		const res3 = await app.request(req3);
-		const data3 = await res3.json();
+		const data3 = (await res3.json()) as TopicWithSubscriptions[];
 
-		const targetTopic = (data3 as any).find((t: any) => t.id === topic.id);
+		const targetTopic = data3.find((t) => t.id === topic.id);
 		if (targetTopic) {
 			if (
 				targetTopic.subscriptions.length === 1 &&
@@ -135,23 +140,19 @@ async function verify() {
 			errors++;
 		}
 
-		// Test as Admin (Should see ALL subscriptions?? Wait, I didn't add another subscription. Let's add admin subscription too)
-		// Actually, let's just check that Admin sees the User's subscription.
-		// In my logic: isAdmin ? undefined (all) : ...
-		// So Admin should see User's subscription.
-
+		// Test as Admin (Should see ALL subscriptions??)
 		const req4 = new Request("http://localhost/api/topics", {
 			headers: {
 				Cookie: `session=${encodeURIComponent(JSON.stringify(sessionAdmin))}`,
 			},
 		});
 		const res4 = await app.request(req4);
-		const data4 = await res4.json();
+		const data4 = (await res4.json()) as TopicWithSubscriptions[];
 
-		const targetTopicAdmin = (data4 as any).find((t: any) => t.id === topic.id);
+		const targetTopicAdmin = data4.find((t) => t.id === topic.id);
 		// Should see the subscription for userUser
-		const hasUserSub = targetTopicAdmin.subscriptions.some(
-			(s: any) => s.userId === userUser.id,
+		const hasUserSub = targetTopicAdmin?.subscriptions.some(
+			(s) => s.userId === userUser.id,
 		);
 		if (hasUserSub) {
 			console.log(

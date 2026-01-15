@@ -2,6 +2,19 @@ import { Activity, BarChart3, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { client } from "../lib/client";
 
+interface Task {
+	id: string;
+	createdAt: string;
+	topicSlug: string | null;
+	sender: {
+		name: string;
+		email: string | null;
+	} | null;
+	successCount: number;
+	recipientCount: number;
+	status: string;
+}
+
 interface Stats {
 	topics: {
 		topicSlug: string;
@@ -16,7 +29,7 @@ interface Stats {
 		failedCount: number;
 		successRate: number;
 	};
-	tasks: any[];
+	tasks: Task[];
 }
 
 export default function SystemLoadView() {
@@ -29,7 +42,13 @@ export default function SystemLoadView() {
 			const res = await client.api.stats.$get(undefined, {
 				init: { credentials: "include" },
 			});
-			const data = await res.json();
+			if (!res.ok) {
+				console.error("Failed to fetch stats:", res.status);
+				return;
+			}
+			const data = (await res.json()) as Omit<Stats, "topics"> & {
+				topics: unknown;
+			};
 
 			// Fetch recent tasks as well
 			const tasksRes = await client.api.alerts.tasks.$get(
@@ -38,9 +57,19 @@ export default function SystemLoadView() {
 					init: { credentials: "include" },
 				},
 			);
-			const tasks = await tasksRes.json();
+			if (!tasksRes.ok) {
+				console.error("Failed to fetch tasks:", tasksRes.status);
+				return;
+			}
+			const tasks = (await tasksRes.json()) as unknown;
 
-			setStats({ ...data, tasks } as Stats);
+			setStats({
+				topics: Array.isArray(data.topics)
+					? (data.topics as Stats["topics"])
+					: [],
+				recent: data.recent as Stats["recent"],
+				tasks: Array.isArray(tasks) ? (tasks as Task[]) : [],
+			});
 			setLastUpdated(new Date());
 		} catch (error) {
 			console.error("Failed to fetch stats:", error);
@@ -237,7 +266,7 @@ export default function SystemLoadView() {
 							</tr>
 						</thead>
 						<tbody className="bg-white divide-y divide-gray-200">
-							{stats.tasks.map((task: any) => (
+							{stats.tasks.map((task) => (
 								<tr
 									key={task.id}
 									className="hover:bg-gray-50 transition-colors"
@@ -348,6 +377,7 @@ function Gauge({ value }: { value: number }) {
 	return (
 		<div className="relative flex items-center justify-center">
 			<svg className="w-32 h-32 transform -rotate-90">
+				<title>Success Rate Gauge</title>
 				<circle
 					className="text-gray-100"
 					strokeWidth="8"

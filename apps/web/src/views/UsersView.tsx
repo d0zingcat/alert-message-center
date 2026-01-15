@@ -47,7 +47,11 @@ export default function UsersView() {
 		try {
 			const res = await client.api.users.$post(
 				{
-					json: formData as any,
+					json: formData as {
+						name: string;
+						feishuUserId?: string;
+						email?: string;
+					},
 				},
 				{
 					init: { credentials: "include" },
@@ -169,7 +173,7 @@ export default function UsersView() {
 							id="user-name"
 							type="text"
 							required
-							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 text-gray-900"
 							value={formData.name}
 							onChange={(e) =>
 								setFormData({ ...formData, name: e.target.value })
@@ -186,7 +190,7 @@ export default function UsersView() {
 						<input
 							id="user-feishu"
 							type="text"
-							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 text-gray-900"
 							value={formData.feishuUserId}
 							onChange={(e) =>
 								setFormData({ ...formData, feishuUserId: e.target.value })
@@ -203,7 +207,7 @@ export default function UsersView() {
 						<input
 							id="user-email"
 							type="email"
-							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 text-gray-900"
 							value={formData.email}
 							onChange={(e) =>
 								setFormData({ ...formData, email: e.target.value })
@@ -214,7 +218,7 @@ export default function UsersView() {
 						<button
 							type="button"
 							onClick={() => setIsModalOpen(false)}
-							className="mr-3 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+							className="mr-3 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-gray-900"
 						>
 							Cancel
 						</button>

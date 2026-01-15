@@ -48,8 +48,10 @@ export default function GroupBindingsModal({
 					init: { credentials: "include" },
 				},
 			);
-			const data = await res.json();
-			setBindings(data as any);
+			const data = (await res.json()) as GroupBinding[];
+			if (Array.isArray(data)) {
+				setBindings(data);
+			}
 		} catch (err) {
 			console.error(err);
 		}
@@ -60,8 +62,10 @@ export default function GroupBindingsModal({
 			const res = await client.api.groups.$get(undefined, {
 				init: { credentials: "include" },
 			});
-			const data = await res.json();
-			setKnownGroups(data as any);
+			const data = (await res.json()) as KnownGroup[];
+			if (Array.isArray(data)) {
+				setKnownGroups(data);
+			}
 		} catch (err) {
 			console.error(err);
 		}
