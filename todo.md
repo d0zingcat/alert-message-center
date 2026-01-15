@@ -29,3 +29,4 @@
 - [x] **Linting**: Tightened Biome rules and resolved all a11y/correctness issues.
 - [x] **Automated Migrations**: Automatically initialize database schema on startup (especially in Docker).
 - [x] **Frontend Resilience**: Hardened API calls to prevent crashes on empty data or env access errors.
+- [x] **CI & Type Safety**: Resolved all TypeScript errors and Biome formatting issues to ensure a healthy CI pipeline.

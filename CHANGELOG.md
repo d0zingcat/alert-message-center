@@ -13,6 +13,10 @@
     - 增加了防御性逻辑，确保在数据未加载或加载失败时显示友好的提示而非崩溃。
 - **Vite 环境变量**: 修复了 `TypeError: Cannot read properties of undefined (reading 'VITE_WEBHOOK_BASE_URL')`。
     - 在 `TopicsView.tsx` 中使用可选链 (`meta.env?.`) 安全地访问 Vite 环境变量，防止由于环境未完全初始化导致的崩溃。
+- **CI & 类型安全**: 修复了破坏 CI 流水的类型错误与格式问题。
+    - 运行 `biome check --write` 统一了全局代码格式。
+    - 完善了 `feishu.ts` 中的 `UserAccessTokenData` 接口定义，补充了飞书 API 返回的用户基础信息字段。
+    - 在 `auth.ts` 中增加了对 `feishuClient.getUserAccessToken` 返回值的空值校验，确保 OAuth 回调流程更健壮。
 
 ## [1.2.4] - 2026-01-15
 
