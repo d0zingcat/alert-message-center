@@ -4,6 +4,17 @@
 
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
+ 
+## [1.3.0] - 2026-01-15
+
+### 新增
+- **视觉品牌**: 引入了自定义图标和 Favicon。
+    - 为 "Alert Message Center" 专门设计的现代 Indigo 主题 Logo。
+    - 将 Logo 集成到登录界面和顶部导航栏，替换了通用的 Activity 图标。
+
+### 修复
+- **部署可靠性**: 修复了 Docker 环境下数据库迁移失败的问题。
+    - 在 `.gitignore` 中移除了对 `apps/server/drizzle/meta` 的忽略，确保 Drizzle 迁移日志 (`_journal.json`) 能正确打包进 Docker 镜像。
 
 ## [1.2.7] - 2026-01-15
 

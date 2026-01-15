@@ -31,3 +31,6 @@
 - [x] **Frontend Resilience**: Hardened API calls to prevent crashes on empty data or env access errors.
 - [x] **CI & Type Safety**: Resolved all TypeScript errors and Biome formatting issues to ensure a healthy CI pipeline.
 - [x] **User Token Shortening**: Shortened `personalToken` to 8 characters and integrated automated migration into the deployment script.
+- [x] **Visual Identity**: Added custom logo, favicon and integrated them into the UI (login/navbar).
+- [x] **Migration Robustness**: Fixed migration failures in Docker by un-ignoring the drizzle meta directory.
+

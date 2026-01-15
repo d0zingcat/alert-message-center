@@ -223,11 +223,10 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - Deployment Architecture: A single container runs the Bun server, which serves API requests and static frontend assets (via `hono/bun`'s `serveStatic`).
   - **Database Initialization**: The Docker entrypoint automatically runs `bun run db:migrate:deploy` before starting the server to ensure the schema is up-to-date in new environments.
   - **Token Migration**: The `db:migrate:deploy` script (defined in `src/db/migrate.ts`) also handles legacy user token shortening to maintain consistency with the 8-character token logic introduced in v1.2.6.
+  - **Drizzle Meta**: The `apps/server/drizzle/meta` directory MUST NOT be ignored by git (it was previously explicitly excluded in `.gitignore` but has been restored). This directory contains `_journal.json`, which is essential for `drizzle-kit` and the runtime migrator to verify migration integrity. Without it, migrations will fail in clean environments like Docker containers.
 
 ## 8. Core Documents
 
-- **[README.md](file:///Users/lilithgames/Workspace/dap/alert-message-center/README.md)**: Main project documentation, including quick start, tech stack overview, and Webhook usage guide.
-- **[CHANGELOG.md](file:///Users/lilithgames/Workspace/dap/alert-message-center/CHANGELOG.md)**: Record of version changes, following the Keep a Changelog specification.
-- **[todo.md](file:///Users/lilithgames/Workspace/dap/alert-message-center/todo.md)**: Task tracking and upcoming features.
-
-
+- **[README.md](file:///Users/lilithgames/Workspace/play/alert-message-center/README.md)**: Main project documentation, including quick start, tech stack overview, and Webhook usage guide.
+- **[CHANGELOG.md](file:///Users/lilithgames/Workspace/play/alert-message-center/CHANGELOG.md)**: Record of version changes, following the Keep a Changelog specification.
+- **[todo.md](file:///Users/lilithgames/Workspace/play/alert-message-center/todo.md)**: Task tracking and upcoming features.

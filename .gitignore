@@ -34,7 +34,6 @@ pnpm-debug.log*
 # Database
 *.sqlite
 *.db
-apps/server/drizzle/meta
 
 # Bun
 .bun/
