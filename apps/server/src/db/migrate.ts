@@ -2,6 +2,9 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
+import path from "node:path";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import * as schema from "./schema";
 import { users } from "./schema";
 
@@ -42,8 +45,18 @@ async function main() {
 	const sql = postgres(connectionString, { max: 1 });
 	const db = drizzle(sql, { schema });
 
+	const __filename = fileURLToPath(import.meta.url);
+	const __dirname = path.dirname(__filename);
+	const migrationsFolder = path.resolve(__dirname, "../../drizzle");
+
+	console.log(`📂 Migrations folder: ${migrationsFolder}`);
+	if (!fs.existsSync(migrationsFolder)) {
+		console.error(`❌ Migrations folder not found: ${migrationsFolder}`);
+		process.exit(1);
+	}
+
 	try {
-		await migrate(db, { migrationsFolder: "./drizzle" });
+		await migrate(db, { migrationsFolder });
 		console.log("✅ Database migrations completed!");
 
 		await migrateUserTokens(db);
