@@ -71,15 +71,15 @@ FEISHU_APP_ID="cli_xxx"
 FEISHU_APP_SECRET="xxx"
 ADMIN_EMAILS="user1@example.com,user2@example.com" # 管理员列表
 
-# 数据库推送
-cd apps/server && bun run db:push
+# 数据库推送/迁移
+cd apps/server && bun run db:migrate:deploy
 
 # 启动开发环境
 bun run dev
 ```
 
 ### 3. Docker 部署
-项目支持使用 Docker Compose 快速部署：
+项目支持使用 Docker Compose 快速部署，且**数据库会自动进行初始化与迁移**：
 
 ```bash
 # 复制并填写环境变量

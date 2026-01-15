@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.2.2)
+# Project Context for GitHub Copilot (v1.2.3)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -216,6 +216,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - GitHub Actions automates building a multi-stage Docker image and pushing it to GitHub Container Registry (GHCR).
   - Image path: `ghcr.io/${USER}/alert-message-center`.
   - Deployment Architecture: A single container runs the Bun server, which serves API requests and static frontend assets (via `hono/bun`'s `serveStatic`).
+  - **Database Initialization**: The Docker entrypoint automatically runs `bun run db:migrate:deploy` before starting the server to ensure the schema is up-to-date in new environments.
 
 ## 8. Core Documents
 

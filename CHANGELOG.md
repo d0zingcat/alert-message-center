@@ -5,6 +5,18 @@
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
  
+## [1.2.3] - 2026-01-15
+
+### 新增
+- **自动化数据库迁移**: 引入了自动化数据库初始化与迁移机制。
+    - 添加了 `src/db/migrate.ts` 脚本，使用 Drizzle Migrator 自动应用挂起的迁移。
+    - 更新了 `Dockerfile`，使容器启动时自动执行数据库迁移。
+    - 在 `package.json` 中新增了 `db:migrate:deploy` 脚本。
+
+### 修复
+- **初始化错误**: 修复了在全新环境下启动时因缺少数据库表导致的 `relation "users" does not exist` 错误。
+- **迁移历史**: 清理并重新生成了初始迁移文件，确保所有表在全新部署时能正确创建。
+
 ## [1.2.2] - 2026-01-14
 
 ### 变更
