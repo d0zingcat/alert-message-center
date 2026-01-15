@@ -53,6 +53,11 @@ auth.get("/callback", async (c) => {
 		// Exchange code for user access token and user info
 		const userData = await feishuClient.getUserAccessToken(code);
 
+		if (!userData) {
+			logger.error("[Auth] Failed to get user data from code");
+			return c.json({ error: "Failed to get user info from Feishu" }, 500);
+		}
+
 		// Check if user exists, otherwise create
 		let user = await db.query.users.findFirst({
 			where: eq(users.feishuUserId, userData.open_id),

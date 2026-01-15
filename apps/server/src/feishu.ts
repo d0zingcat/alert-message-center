@@ -8,6 +8,9 @@ export interface UserAccessTokenData {
 	refresh_token: string;
 	refresh_expires_in: number;
 	scope: string;
+	name: string;
+	open_id: string;
+	email?: string;
 }
 
 export class FeishuClient {

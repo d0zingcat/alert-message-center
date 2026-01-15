@@ -219,20 +219,20 @@ export default function TopicsView() {
 						const updatedSubs = isSubscribed
 							? t.subscriptions.filter((s) => s.userId !== userId)
 							: [
-								...t.subscriptions,
-								{
-									userId,
-									user:
-										users.find((u) => u.id === userId) ||
-										(currentUser
-											? {
-												id: currentUser.id,
-												name: currentUser.name,
-												email: currentUser.email,
-											}
-											: { id: "unknown", name: "Unknown" }),
-								},
-							];
+									...t.subscriptions,
+									{
+										userId,
+										user:
+											users.find((u) => u.id === userId) ||
+											(currentUser
+												? {
+														id: currentUser.id,
+														name: currentUser.name,
+														email: currentUser.email,
+													}
+												: { id: "unknown", name: "Unknown" }),
+									},
+								];
 						return { ...t, subscriptions: updatedSubs };
 					}
 					return t;
@@ -244,20 +244,20 @@ export default function TopicsView() {
 				const updatedSubs = isSubscribed
 					? selectedTopic.subscriptions.filter((s) => s.userId !== userId)
 					: [
-						...selectedTopic.subscriptions,
-						{
-							userId,
-							user:
-								users.find((u) => u.id === userId) ||
-								(currentUser
-									? {
-										id: currentUser.id,
-										name: currentUser.name,
-										email: currentUser.email,
-									}
-									: { id: "unknown", name: "Unknown" }),
-						},
-					];
+							...selectedTopic.subscriptions,
+							{
+								userId,
+								user:
+									users.find((u) => u.id === userId) ||
+									(currentUser
+										? {
+												id: currentUser.id,
+												name: currentUser.name,
+												email: currentUser.email,
+											}
+										: { id: "unknown", name: "Unknown" }),
+							},
+						];
 				setSelectedTopic({ ...selectedTopic, subscriptions: updatedSubs });
 			}
 
@@ -429,10 +429,11 @@ export default function TopicsView() {
 												<button
 													type="button"
 													onClick={() => handleSelfSubscribe(topic)}
-													className={`inline-flex items-center px-3 py-1 border text-xs font-medium rounded-md ${isSubscribedToTopic(topic)
+													className={`inline-flex items-center px-3 py-1 border text-xs font-medium rounded-md ${
+														isSubscribedToTopic(topic)
 															? "border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
 															: "border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
-														}`}
+													}`}
 												>
 													{isSubscribedToTopic(topic) ? (
 														<>
@@ -584,12 +585,13 @@ export default function TopicsView() {
 													</p>
 													<div className="flex items-center">
 														<span
-															className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${req.status === "approved"
+															className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+																req.status === "approved"
 																	? "bg-green-100 text-green-800"
 																	: req.status === "rejected"
 																		? "bg-red-100 text-red-800"
 																		: "bg-yellow-100 text-yellow-800"
-																}`}
+															}`}
 														>
 															{req.status === "approved"
 																? "Approved"
@@ -688,10 +690,11 @@ export default function TopicsView() {
 					</div>
 					{submitStatus && (
 						<div
-							className={`p-3 rounded-md text-sm ${submitStatus.type === "success"
+							className={`p-3 rounded-md text-sm ${
+								submitStatus.type === "success"
 									? "bg-green-50 text-green-800"
 									: "bg-red-50 text-red-800"
-								}`}
+							}`}
 						>
 							{submitStatus.message}
 						</div>

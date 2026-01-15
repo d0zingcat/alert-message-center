@@ -35,30 +35,33 @@ export default function AdminView() {
 						<button
 							type="button"
 							onClick={() => setActiveTab("load")}
-							className={`${activeTab === "load"
+							className={`${
+								activeTab === "load"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							System Load
 						</button>
 						<button
 							type="button"
 							onClick={() => setActiveTab("requests")}
-							className={`${activeTab === "requests"
+							className={`${
+								activeTab === "requests"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							Topic Requests
 						</button>
 						<button
 							type="button"
 							onClick={() => setActiveTab("topics")}
-							className={`${activeTab === "topics"
+							className={`${
+								activeTab === "topics"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							All Topics
 						</button>
@@ -167,12 +170,13 @@ function TopicsManagement() {
 							</td>
 							<td className="px-6 py-4 whitespace-nowrap">
 								<span
-									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${topic.status === "approved"
+									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+										topic.status === "approved"
 											? "bg-green-100 text-green-800"
 											: topic.status === "rejected"
 												? "bg-red-100 text-red-800"
 												: "bg-yellow-100 text-yellow-800"
-										}`}
+									}`}
 								>
 									{topic.status}
 								</span>
