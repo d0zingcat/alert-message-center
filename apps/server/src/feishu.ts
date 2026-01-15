@@ -33,6 +33,7 @@ export class FeishuClient {
 		receiveIdType: "open_id" | "user_id" | "email" | "chat_id",
 		msgType: string,
 		content: Record<string, unknown> | string,
+		uuid?: string,
 	) {
 		// Content needs to be stringified for 'text' type in API, but SDK might handle it differently?
 		// Actually SDK expects 'content' as string JSON for 'im.v1.messages.create'
@@ -48,6 +49,7 @@ export class FeishuClient {
 					receive_id: receiveId,
 					msg_type: msgType,
 					content: contentStr,
+					uuid: uuid,
 				},
 			});
 

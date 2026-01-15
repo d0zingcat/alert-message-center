@@ -4,6 +4,13 @@
 
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
+
+## [1.2.6] - 2026-01-15
+
+### 变更
+- **用户 Token**：将用户的 `personalToken` 从 32 位 UUID 缩短为 8 位十六进制字符串，提升易用性。
+- **数据库迁移**：完善了数据库迁移流程，在 `db:migrate:deploy` 中集成了存量用户 Token 的自动缩短逻辑，确保线上环境数据的一致性。
+- **AI 规范**：更新了 `copilot-context.md`，明确要求 AI 在每次修改代码后必须进行代码风格和 Lint 检查。
  
 ## [1.2.5] - 2026-01-15
 

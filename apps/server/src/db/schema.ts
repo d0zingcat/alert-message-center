@@ -86,7 +86,7 @@ export const users = pgTable("users", {
 	personalToken: text("personal_token")
 		.notNull()
 		.unique()
-		.$defaultFn(() => crypto.randomUUID().replace(/-/g, "")),
+		.$defaultFn(() => crypto.randomUUID().split("-")[0]),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({

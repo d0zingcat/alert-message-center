@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.2.5)
+# Project Context for GitHub Copilot (v1.2.6)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -101,7 +101,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 ### Personal Inbox (Direct Messaging)
 - **Strategy**: Direct delivery to a specific user.
 - **Mechanism**:
-  1. Each user has a `personalToken`.
+  1. Each user has a `personalToken` (8-character hex string).
   2. Sending to `POST /api/webhook/:token/dm` routes messages directly to the user associated with the token.
   3. No Topic or Subscription is required.
 
@@ -198,7 +198,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - Framework: [Biome](https://biomejs.dev/).
   - **Rules**: Strict configuration for `a11y`, `suspicious`, `style`, and `correctness`.
   - **Tailwind**: `noUnknownAtRules` is configured to ignore Tailwind directives (`@tailwind`, `@apply`, etc.).
-  - **Enforcement**: CI/CD runs `biome check` to ensure compliance. Avoid Use of `as any` is strictly prohibited except for specialized cases like `import.meta as any` (for Vite env) or very complex JSON spread operations. In those rare cases, use `// biome-ignore` with a clear explanation.
+  - **Enforcement**: CI/CD runs `biome check` to ensure compliance. **AI assistants MUST run `bun x biome check --write .` (or equivalent) in the respective app directory after every code modification to verify and fix lint/formatting issues before finalizing.** Avoid Use of `as any` is strictly prohibited except for specialized cases like `import.meta as any` (for Vite env) or very complex JSON spread operations. In those rare cases, use `// biome-ignore` with a clear explanation.
   - **Vite Env Access**: When accessing Vite environment variables via `import.meta.env` (or casting `import.meta as any`), **always use optional chaining** (e.g., `meta.env?.VITE_...`). This prevents crashes if the environment is not initialized or if the code runs in a non-browser context during pre-rendering/testing.
 - **Frontend Resilience**:
   - Always check `res.ok` before attempting to parse or use API responses.
@@ -222,6 +222,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - Image path: `ghcr.io/${USER}/alert-message-center`.
   - Deployment Architecture: A single container runs the Bun server, which serves API requests and static frontend assets (via `hono/bun`'s `serveStatic`).
   - **Database Initialization**: The Docker entrypoint automatically runs `bun run db:migrate:deploy` before starting the server to ensure the schema is up-to-date in new environments.
+  - **Token Migration**: The `db:migrate:deploy` script (defined in `src/db/migrate.ts`) also handles legacy user token shortening to maintain consistency with the 8-character token logic introduced in v1.2.6.
 
 ## 8. Core Documents
 
