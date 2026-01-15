@@ -1,6 +1,18 @@
 import * as lark from "@larksuiteoapi/node-sdk";
 import { logger } from "./lib/logger";
 
+export interface UserAccessTokenData {
+	access_token: string;
+	token_type: string;
+	expires_in: number;
+	refresh_token: string;
+	refresh_expires_in: number;
+	scope: string;
+	name: string;
+	open_id: string;
+	email?: string;
+}
+
 export class FeishuClient {
 	public client: lark.Client;
 	public appId: string;
@@ -20,7 +32,7 @@ export class FeishuClient {
 		receiveId: string,
 		receiveIdType: "open_id" | "user_id" | "email" | "chat_id",
 		msgType: string,
-		content: any,
+		content: Record<string, unknown> | string,
 	) {
 		// Content needs to be stringified for 'text' type in API, but SDK might handle it differently?
 		// Actually SDK expects 'content' as string JSON for 'im.v1.messages.create'
@@ -50,7 +62,9 @@ export class FeishuClient {
 		}
 	}
 
-	async getUserAccessToken(code: string): Promise<any> {
+	async getUserAccessToken(
+		code: string,
+	): Promise<UserAccessTokenData | undefined> {
 		try {
 			const response = await this.client.authen.accessToken.create({
 				data: {
@@ -63,7 +77,7 @@ export class FeishuClient {
 				logger.error({ response }, "Feishu get user access token error");
 				throw new Error(`Failed to get user access token: ${response.msg}`);
 			}
-			return response.data;
+			return response.data as UserAccessTokenData;
 		} catch (e) {
 			console.error("Feishu SDK error:", e);
 			throw e;

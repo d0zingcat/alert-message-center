@@ -2,6 +2,24 @@ import { useCallback, useEffect, useState } from "react";
 import { client } from "../lib/client";
 import SystemLoadView from "./SystemLoadView";
 
+interface TopicUser {
+	id: string;
+	name: string;
+	email?: string | null;
+}
+
+interface Topic {
+	id: string;
+	name: string;
+	slug: string;
+	description?: string;
+	status: "pending" | "approved" | "rejected";
+	subscriptions?: { id: string }[];
+	creator?: TopicUser;
+	approver?: TopicUser;
+	createdAt: string;
+}
+
 export default function AdminView() {
 	const [activeTab, setActiveTab] = useState("load");
 
@@ -59,7 +77,7 @@ export default function AdminView() {
 }
 
 function TopicsManagement() {
-	const [topics, setTopics] = useState<any[]>([]);
+	const [topics, setTopics] = useState<Topic[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	const fetchAllTopics = useCallback(async () => {
@@ -68,10 +86,21 @@ function TopicsManagement() {
 			const res = await client.api.topics.all.$get(undefined, {
 				init: { credentials: "include" },
 			});
-			const data = await res.json();
-			setTopics(data);
+			if (res.ok) {
+				const data = await res.json();
+				if (Array.isArray(data)) {
+					setTopics(data as unknown as Topic[]);
+				} else {
+					console.error("All topics data is not an array:", data);
+					setTopics([]);
+				}
+			} else {
+				console.error("Failed to fetch all topics:", res.status);
+				setTopics([]);
+			}
 		} catch (error) {
 			console.error(error);
+			setTopics([]);
 		} finally {
 			setLoading(false);
 		}
@@ -179,7 +208,7 @@ function TopicsManagement() {
 }
 
 function TopicRequestsList() {
-	const [requests, setRequests] = useState<any[]>([]);
+	const [requests, setRequests] = useState<Topic[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	const fetchRequests = useCallback(async () => {
@@ -188,10 +217,20 @@ function TopicRequestsList() {
 			const res = await client.api.topics.requests.$get(undefined, {
 				init: { credentials: "include" },
 			});
-			const data = await res.json();
-			setRequests(data);
+			if (res.ok) {
+				const data = await res.json();
+				if (Array.isArray(data)) {
+					setRequests(data as unknown as Topic[]);
+				} else {
+					setRequests([]);
+				}
+			} else {
+				console.error("Failed to fetch requests:", res.status);
+				setRequests([]);
+			}
 		} catch (error) {
 			console.error(error);
+			setRequests([]);
 		} finally {
 			setLoading(false);
 		}

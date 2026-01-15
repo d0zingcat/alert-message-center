@@ -5,6 +5,40 @@
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
  
+## [1.2.5] - 2026-01-15
+
+### 修复
+- **前端鲁棒性**: 修复了当数据库为空或 API 返回错误对象时页面发生崩溃（白屏）的问题。
+    - 为 `TopicsView`, `SystemLoadView` 和 `AdminView` 中的所有 API 请求增加了 `res.ok` 和 `Array.isArray` 校验。
+    - 增加了防御性逻辑，确保在数据未加载或加载失败时显示友好的提示而非崩溃。
+- **Vite 环境变量**: 修复了 `TypeError: Cannot read properties of undefined (reading 'VITE_WEBHOOK_BASE_URL')`。
+    - 在 `TopicsView.tsx` 中使用可选链 (`meta.env?.`) 安全地访问 Vite 环境变量，防止由于环境未完全初始化导致的崩溃。
+- **CI & 类型安全**: 修复了破坏 CI 流水的类型错误与格式问题。
+    - 运行 `biome check --write` 统一了全局代码格式。
+    - 完善了 `feishu.ts` 中的 `UserAccessTokenData` 接口定义，补充了飞书 API 返回的用户基础信息字段。
+    - 在 `auth.ts` 中增加了对 `feishuClient.getUserAccessToken` 返回值的空值校验，确保 OAuth 回调流程更健壮。
+
+## [1.2.4] - 2026-01-15
+
+### 变更
+- **类型安全**: 全面重构了服务端与前端的代码，消除了绝大部分 `any` 类型的使用。
+    - 在 `webhook.ts`, `verify_permissions.ts`, `feishu.ts` 等核心文件中引入了显式接口。
+    - 改进了 Webhook Body 的处理逻辑，在保持灵活性的同时增强了类型校验。
+    - 修复了多处 Non-null Assertion 为更安全的可选链或显式空值检查。
+- **Linting**: 严格执行 Biome 的 `noExplicitAny` 规则。
+
+## [1.2.3] - 2026-01-15
+
+### 新增
+- **自动化数据库迁移**: 引入了自动化数据库初始化与迁移机制。
+    - 添加了 `src/db/migrate.ts` 脚本，使用 Drizzle Migrator 自动应用挂起的迁移。
+    - 更新了 `Dockerfile`，使容器启动时自动执行数据库迁移。
+    - 在 `package.json` 中新增了 `db:migrate:deploy` 脚本。
+
+### 修复
+- **初始化错误**: 修复了在全新环境下启动时因缺少数据库表导致的 `relation "users" does not exist` 错误。
+- **迁移历史**: 清理并重新生成了初始迁移文件，确保所有表在全新部署时能正确创建。
+
 ## [1.2.2] - 2026-01-14
 
 ### 变更
