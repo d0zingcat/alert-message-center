@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.2.7)
+# Project Context for GitHub Copilot (v1.2.8)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -116,10 +116,13 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - For Direct: Identify the user via `token`.
 3.  **Dispatch**:
     - Call `FeishuClient.sendMessage` for each recipient.
-    - **Payload**: Supports `text` and `interactive` (Feishu Card) message types.
-
-    - Call `FeishuClient.sendMessage` for each recipient.
-    - **Payload**: Supports `text` and `interactive` (Feishu Card) message types.
+    - **Payload**: Supports various Feishu message types:
+        - `text`: Standard text.
+        - `post`: Rich text with titles, images, and links.
+        - `interactive`: Feishu Cards (provided via `card` field or inferred from `header`/`elements`).
+        - `image`, `file`, `audio`, `media`, `sticker`: Media types (requires appropriate `_key` fields).
+        - `share_chat`, `share_user`: Sharing entities.
+    - **Inference**: If `msg_type` is missing, the system automatically infers it from the keys present in the request body (e.g., `image_key` implies `image`).
 
 ### Feishu Group Chat Integration
 - **Strategy**: App Bot in Group.

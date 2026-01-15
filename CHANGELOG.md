@@ -5,6 +5,12 @@
 本文件的格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
 
+## [1.2.8] - 2026-01-15
+
+### 变更
+- **文档规范**：更新了 `copilot-context.md`，详细列出了 Webhook 支持的所有消息类型（text, post, card, image, file 等），并详细说明了消息类型的自动推断逻辑。
+- **文档优化**：清理了 `copilot-context.md` 中的冗余描述。
+
 ## [1.2.7] - 2026-01-15
 
 ### 修复
