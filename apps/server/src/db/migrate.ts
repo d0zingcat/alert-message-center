@@ -9,7 +9,7 @@ const connectionString =
 	process.env.DATABASE_URL ||
 	"postgres://postgres:password@localhost:5432/alert_message_center";
 
-export async function migrateUserTokens(db: any) {
+export async function migrateUserTokens(db: ReturnType<typeof drizzle>) {
 	console.log("⏳ Checking for user tokens that need shortening...");
 	try {
 		const allUsers = await db.select().from(users);

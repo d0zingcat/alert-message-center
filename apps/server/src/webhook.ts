@@ -4,7 +4,6 @@ import { db } from "./db";
 import { alertLogs, alertTasks, topics, users } from "./db/schema";
 import { feishuClient } from "./feishu";
 import { logger } from "./lib/logger";
-import { uuid } from "zod/v4";
 
 type FeishuReceiveIdType = "open_id" | "user_id" | "email" | "chat_id";
 
@@ -144,21 +143,22 @@ webhook.post("/:token/topic/:slug", async (c) => {
 					} else {
 						// 2. Pass-through strategy: Use rest of body as content
 						// Exclude keys that are definitely not part of content
-						// biome-ignore lint/performance/noDelete: usage is limited
 						const { msg_type, token, ...rest } = body;
 						content = rest;
 
 						// 3. Infer msgType if missing
 						if (!msgType) {
 							if (body.post) msgType = "post";
+							else if (body.file_key && body.image_key)
+								msgType = "media"; // Media has both
 							else if (body.image_key) msgType = "image";
-							else if (body.file_key && body.image_key) msgType = "media"; // Media has both
 							else if (body.file_key) msgType = "file";
 							else if (body.audio_key) msgType = "audio";
 							else if (body.sticker_key) msgType = "sticker";
 							else if (body.chat_id) msgType = "share_chat";
 							else if (body.user_id) msgType = "share_user";
-							else if (body.header || body.elements) msgType = "interactive"; // Unwrapped card
+							else if (body.header || body.elements)
+								msgType = "interactive"; // Unwrapped card
 							else {
 								// Fallback to text
 								msgType = "text";

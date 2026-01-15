@@ -198,7 +198,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - Framework: [Biome](https://biomejs.dev/).
   - **Rules**: Strict configuration for `a11y`, `suspicious`, `style`, and `correctness`.
   - **Tailwind**: `noUnknownAtRules` is configured to ignore Tailwind directives (`@tailwind`, `@apply`, etc.).
-  - **Enforcement**: CI/CD runs `biome check` to ensure compliance. Avoid Use of `as any` is strictly prohibited except for specialized cases like `import.meta as any` (for Vite env) or very complex JSON spread operations. In those rare cases, use `// biome-ignore` with a clear explanation.
+  - **Enforcement**: CI/CD runs `biome check` to ensure compliance. **AI assistants MUST run `bun x biome check --write .` (or equivalent) in the respective app directory after every code modification to verify and fix lint/formatting issues before finalizing.** Avoid Use of `as any` is strictly prohibited except for specialized cases like `import.meta as any` (for Vite env) or very complex JSON spread operations. In those rare cases, use `// biome-ignore` with a clear explanation.
   - **Vite Env Access**: When accessing Vite environment variables via `import.meta.env` (or casting `import.meta as any`), **always use optional chaining** (e.g., `meta.env?.VITE_...`). This prevents crashes if the environment is not initialized or if the code runs in a non-browser context during pre-rendering/testing.
 - **Frontend Resilience**:
   - Always check `res.ok` before attempting to parse or use API responses.
