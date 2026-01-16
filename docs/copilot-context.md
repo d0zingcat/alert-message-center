@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.2.8)
+# Project Context for GitHub Copilot (v1.3.1)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -63,6 +63,8 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - `topicId`: Foreign Key -> `topics.id`.
     - `chatId`: The Feishu `chat_id`.
     - `name`: Group name (snapshot).
+    - `status`: `pending`, `approved`, or `rejected`.
+    - `createdBy`: Foreign Key -> `users.id`.
     - **Relationship**: Many-to-Many between Topics and Feishu Groups.
 
 5.  **Known Group Chat** (`known_group_chats`)
@@ -133,6 +135,9 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - **Auto-Unbind**: All bindings in `topic_group_chats` for that `chat_id` are automatically deleted to ensure data consistency.
 - **Binding**: Users/Admins bind a Topic to a known Feishu Group in the UI.
   - **Security**: Only the Topic Creator or an Admin can bind/unbind groups to a Topic.
+  - **Approval**:
+    - Normal users: Binding status is `pending` upon creation. Admins receive notification.
+    - Admins/Trusted Users: Binding status is `approved` immediately.
 - **Dispatch**: Alerts for the topic are sent to all bound `chat_id`s in addition to individual subscribers.
 
 ### Long Connection (WebSocket)
@@ -148,6 +153,8 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - Normal users: Topic status is `pending` upon creation. Admins receive an interactive Feishu notification.
   - Admins/Trusted Users: Topic status is `approved` immediately.
   - Admin notification logic is located in `apps/server/src/lib/admin-notifier.ts`.
+- **Trusted User System**:
+  - Users with `isTrusted=true` (set by Admin) or `isAdmin=true` have their requests (Topics/Bindings) automatically approved.
 
 
 ## 5. API Endpoints
