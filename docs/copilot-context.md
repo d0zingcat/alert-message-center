@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.2.7)
+# Project Context for GitHub Copilot (v1.2.8)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -51,6 +51,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - `feishuUserId`: The Feishu `open_id`. **Critical** for sending messages.
     - `email`: Contact info.
     - `isAdmin`: Boolean flag for administrative privileges (create topics, view all users).
+    - `isTrusted`: Boolean flag for trusted users (topics are auto-approved).
 
 3.  **Subscription** (`subscriptions`)
     - `topicId`: Foreign Key -> `topics.id`.
@@ -130,7 +131,8 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - The system listens for `im.chat.member.bot.deleted_v1` events.
   - When the bot is removed, the cached group is deleted from `known_group_chats`.
   - **Auto-Unbind**: All bindings in `topic_group_chats` for that `chat_id` are automatically deleted to ensure data consistency.
-- **Binding**: Admins bind a Topic to a known Feishu Group in the UI.
+- **Binding**: Users/Admins bind a Topic to a known Feishu Group in the UI.
+  - **Security**: Only the Topic Creator or an Admin can bind/unbind groups to a Topic.
 - **Dispatch**: Alerts for the topic are sent to all bound `chat_id`s in addition to individual subscribers.
 
 ### Long Connection (WebSocket)
@@ -142,6 +144,10 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - Admins can manage subscriptions for other users globally in `AdminView`.
 - **Topic Deletion**: Centralized in the **Admin Dashboard (All Topics Tab)** to avoid accidental deletion from the main topic list.
 - Button logic on frontend toggles between "Subscribe" and "Unsubscribe".
+- **Topic Approval**:
+  - Normal users: Topic status is `pending` upon creation. Admins receive an interactive Feishu notification.
+  - Admins/Trusted Users: Topic status is `approved` immediately.
+  - Admin notification logic is located in `apps/server/src/lib/admin-notifier.ts`.
 
 
 ## 5. API Endpoints

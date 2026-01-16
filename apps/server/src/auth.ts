@@ -78,13 +78,13 @@ auth.get("/callback", async (c) => {
 				.returning();
 			user = result[0];
 		} else {
-			// Update user info (in case name or admin status changed)
+			// Update user info (don't overwrite admin/trusted status from feishu logic unless it's a new admin)
 			const result = await db
 				.update(users)
 				.set({
 					name: userData.name,
 					email: userData.email || user.email,
-					isAdmin,
+					isAdmin: user.isAdmin || isAdmin, // Keep admin if already admin or in ADMIN_EMAILS
 				})
 				.where(eq(users.id, user.id))
 				.returning();
@@ -100,6 +100,7 @@ auth.get("/callback", async (c) => {
 				name: user.name,
 				email: user.email,
 				isAdmin: user.isAdmin,
+				isTrusted: user.isTrusted,
 				personalToken: user.personalToken,
 			}),
 			{
@@ -117,6 +118,7 @@ auth.get("/callback", async (c) => {
 				name: user.name,
 				email: user.email,
 				isAdmin: user.isAdmin,
+				isTrusted: user.isTrusted,
 			},
 		});
 	} catch (error) {

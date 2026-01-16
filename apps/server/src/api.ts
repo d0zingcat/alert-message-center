@@ -12,6 +12,7 @@ import {
 	users,
 } from "./db/schema";
 import { type AuthSession, requireAdmin, requireAuth } from "./middleware";
+import { notifyAdminsOfNewTopic } from "./lib/admin-notifier";
 
 const api = new Hono<{ Variables: { session: AuthSession } }>();
 
@@ -30,6 +31,7 @@ const userSchema = z.object({
 	name: z.string().min(1),
 	feishuUserId: z.string().min(1),
 	email: z.string().email().optional().or(z.literal("")),
+	isTrusted: z.boolean().optional(),
 });
 
 // --- Topics ---
@@ -67,6 +69,17 @@ api.get("/topics/requests", requireAdmin, async (c) => {
 	const requests = await db.query.topics.findMany({
 		where: eq(topics.status, "pending"),
 		with: {
+			creator: true,
+		},
+	});
+	return c.json(requests);
+});
+
+api.get("/topics/groups/requests", requireAdmin, async (c) => {
+	const requests = await db.query.topicGroupChats.findMany({
+		where: eq(topicGroupChats.status, "pending"),
+		with: {
+			topic: true,
 			creator: true,
 		},
 	});
@@ -124,7 +137,7 @@ api.post("/topics", requireAuth, zValidator("json", topicSchema), async (c) => {
 	const body = c.req.valid("json");
 	const session = c.get("session");
 
-	const status = session.isAdmin ? "approved" : "pending";
+	const status = session.isAdmin || session.isTrusted ? "approved" : "pending";
 
 	const result = await db
 		.insert(topics)
@@ -132,9 +145,18 @@ api.post("/topics", requireAuth, zValidator("json", topicSchema), async (c) => {
 			...body,
 			status,
 			createdBy: session.id,
-			approvedBy: session.isAdmin ? session.id : null,
+			approvedBy: session.isAdmin || session.isTrusted ? session.id : null,
 		})
 		.returning();
+	if (status === "pending") {
+		await notifyAdminsOfNewTopic({
+			id: result[0].id,
+			name: result[0].name,
+			slug: result[0].slug,
+			createdBy: session.id,
+		});
+	}
+
 	return c.json(result[0]);
 });
 
@@ -278,6 +300,21 @@ api.post(
 		const body = c.req.valid("json");
 		const session = c.get("session");
 
+		// Check topic ownership or admin
+		const topic = await db.query.topics.findFirst({
+			where: eq(topics.id, topicId),
+		});
+
+		if (!topic) {
+			return c.json({ error: "Topic not found" }, 404);
+		}
+
+		if (topic.createdBy !== session.id && !session.isAdmin) {
+			return c.json({ error: "Only topic owner or admin can bind groups" }, 403);
+		}
+
+		const status = session.isAdmin || session.isTrusted ? "approved" : "pending";
+
 		const result = await db
 			.insert(topicGroupChats)
 			.values({
@@ -285,8 +322,22 @@ api.post(
 				chatId: body.chatId,
 				name: body.name,
 				createdBy: session.id,
+				status,
 			})
 			.returning();
+
+		if (status === "pending") {
+			// Notify admins about the new group binding request
+			await notifyAdminsOfNewTopic({
+				id: topic.id,
+				name: topic.name,
+				slug: topic.slug,
+				createdBy: session.id,
+				// Metadata passed to notifier for better context
+				isGroupBinding: true,
+				groupName: body.name,
+			} as any);
+		}
 
 		return c.json(result[0]);
 	},
@@ -295,6 +346,23 @@ api.post(
 // Unbind a group
 api.delete("/topics/:id/groups/:bindingId", requireAuth, async (c) => {
 	const { id: topicId, bindingId } = c.req.param();
+	const session = c.get("session");
+
+	// Check topic ownership or admin
+	const topic = await db.query.topics.findFirst({
+		where: eq(topics.id, topicId),
+	});
+
+	if (!topic) {
+		return c.json({ error: "Topic not found" }, 404);
+	}
+
+	if (topic.createdBy !== session.id && !session.isAdmin) {
+		return c.json(
+			{ error: "Only topic owner or admin can unbind groups" },
+			403,
+		);
+	}
 
 	await db
 		.delete(topicGroupChats)
@@ -306,6 +374,38 @@ api.delete("/topics/:id/groups/:bindingId", requireAuth, async (c) => {
 		);
 
 	return c.json({ success: true });
+});
+
+// Approve a group binding
+api.post("/topics/:id/groups/:bindingId/approve", requireAdmin, async (c) => {
+	const { id: topicId, bindingId } = c.req.param();
+	const result = await db
+		.update(topicGroupChats)
+		.set({ status: "approved" })
+		.where(
+			and(
+				eq(topicGroupChats.id, bindingId),
+				eq(topicGroupChats.topicId, topicId),
+			),
+		)
+		.returning();
+	return c.json(result[0]);
+});
+
+// Reject a group binding
+api.post("/topics/:id/groups/:bindingId/reject", requireAdmin, async (c) => {
+	const { id: topicId, bindingId } = c.req.param();
+	const result = await db
+		.update(topicGroupChats)
+		.set({ status: "rejected" })
+		.where(
+			and(
+				eq(topicGroupChats.id, bindingId),
+				eq(topicGroupChats.topicId, topicId),
+			),
+		)
+		.returning();
+	return c.json(result[0]);
 });
 
 // --- Alert Tasks ---

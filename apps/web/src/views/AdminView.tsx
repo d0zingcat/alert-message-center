@@ -30,38 +30,45 @@ export default function AdminView() {
 			</div>
 
 			<div className="bg-white shadow rounded-lg p-6">
-				<div className="border-b border-gray-200 mb-6">
+				<div className="border-b border-gray-200 mb-6 overflow-x-auto">
 					<nav className="-mb-px flex space-x-8">
 						<button
 							type="button"
 							onClick={() => setActiveTab("load")}
-							className={`${
-								activeTab === "load"
+							className={`${activeTab === "load"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							System Load
 						</button>
 						<button
 							type="button"
 							onClick={() => setActiveTab("requests")}
-							className={`${
-								activeTab === "requests"
+							className={`${activeTab === "requests"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							Topic Requests
 						</button>
 						<button
 							type="button"
-							onClick={() => setActiveTab("topics")}
-							className={`${
-								activeTab === "topics"
+							onClick={() => setActiveTab("group-requests")}
+							className={`${activeTab === "group-requests"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+						>
+							Group Bindings
+						</button>
+						<button
+							type="button"
+							onClick={() => setActiveTab("topics")}
+							className={`${activeTab === "topics"
+									? "border-indigo-500 text-indigo-600"
+									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							All Topics
 						</button>
@@ -70,8 +77,122 @@ export default function AdminView() {
 
 				{activeTab === "load" && <SystemLoadView />}
 				{activeTab === "requests" && <TopicRequestsList />}
+				{activeTab === "group-requests" && <GroupRequestsList />}
 				{activeTab === "topics" && <TopicsManagement />}
 			</div>
+		</div>
+	);
+}
+
+interface GroupRequest {
+	id: string;
+	topicId: string;
+	chatId: string;
+	name: string;
+	status: string;
+	createdAt: string;
+	topic?: Topic;
+	creator?: TopicUser;
+}
+
+function GroupRequestsList() {
+	const [requests, setRequests] = useState<GroupRequest[]>([]);
+	const [loading, setLoading] = useState(true);
+
+	const fetchRequests = useCallback(async () => {
+		setLoading(true);
+		try {
+			// @ts-ignore - groups requests might not be in the generated client yet
+			const res = await client.api.topics.groups.requests.$get(undefined, {
+				init: { credentials: "include" },
+			});
+			if (res.ok) {
+				const data = await res.json();
+				if (Array.isArray(data)) {
+					setRequests(data as unknown as GroupRequest[]);
+				} else {
+					setRequests([]);
+				}
+			} else {
+				setRequests([]);
+			}
+		} catch (error) {
+			console.error(error);
+			setRequests([]);
+		} finally {
+			setLoading(false);
+		}
+	}, []);
+
+	useEffect(() => {
+		fetchRequests();
+	}, [fetchRequests]);
+
+	const handleAction = async (
+		req: GroupRequest,
+		action: "approve" | "reject",
+	) => {
+		try {
+			// @ts-ignore
+			await client.api.topics[":id"].groups[":bindingId"][action].$post(
+				{ param: { id: req.topicId, bindingId: req.id } },
+				{ init: { credentials: "include" } },
+			);
+			fetchRequests();
+		} catch (error) {
+			console.error(error);
+		}
+	};
+
+	if (loading) return <div>Loading group requests...</div>;
+
+	if (requests.length === 0) {
+		return (
+			<div className="text-center py-8 text-gray-500">
+				No pending group binding requests.
+			</div>
+		);
+	}
+
+	return (
+		<div className="overflow-hidden">
+			<ul className="divide-y divide-gray-200">
+				{requests.map((req) => (
+					<li key={req.id} className="py-4 flex justify-between items-center">
+						<div>
+							<p className="font-medium text-gray-900">
+								Group: <span className="text-indigo-600">{req.name}</span>
+							</p>
+							<p className="text-sm text-gray-500">
+								Topic: <span className="font-semibold">{req.topic?.name}</span> (
+								{req.topic?.slug})
+							</p>
+							<p className="text-sm text-gray-500">
+								Requested by: {req.creator?.name || "Unknown"}
+							</p>
+							<p className="text-xs text-gray-400 mt-1">
+								ID: {req.chatId}
+							</p>
+						</div>
+						<div className="flex gap-2">
+							<button
+								type="button"
+								onClick={() => handleAction(req, "approve")}
+								className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium shadow-sm transition-colors"
+							>
+								Approve
+							</button>
+							<button
+								type="button"
+								onClick={() => handleAction(req, "reject")}
+								className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm font-medium transition-colors"
+							>
+								Reject
+							</button>
+						</div>
+					</li>
+				))}
+			</ul>
 		</div>
 	);
 }
@@ -170,13 +291,12 @@ function TopicsManagement() {
 							</td>
 							<td className="px-6 py-4 whitespace-nowrap">
 								<span
-									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-										topic.status === "approved"
+									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${topic.status === "approved"
 											? "bg-green-100 text-green-800"
 											: topic.status === "rejected"
 												? "bg-red-100 text-red-800"
 												: "bg-yellow-100 text-yellow-800"
-									}`}
+										}`}
 								>
 									{topic.status}
 								</span>

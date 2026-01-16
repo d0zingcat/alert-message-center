@@ -6,6 +6,7 @@ export interface AuthSession {
 	name: string;
 	email: string | null;
 	isAdmin: boolean;
+	isTrusted: boolean;
 }
 
 export async function requireAuth(c: Context, next: Next) {

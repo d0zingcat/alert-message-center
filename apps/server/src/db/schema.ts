@@ -35,6 +35,9 @@ export const topicGroupChats = pgTable("topic_group_chats", {
 		.references(() => topics.id, { onDelete: "cascade" }),
 	chatId: text("chat_id").notNull(), // 飞书群 chat_id
 	name: text("name").notNull(), // 群名称快照
+	status: text("status", { enum: ["pending", "approved", "rejected"] })
+		.default("approved")
+		.notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	createdBy: text("created_by").references(() => users.id),
 });
@@ -83,6 +86,7 @@ export const users = pgTable("users", {
 	feishuUserId: text("feishu_user_id").notNull(), // 必须有飞书 ID 才能私聊 (open_id 或 user_id)
 	email: text("email").unique(),
 	isAdmin: boolean("is_admin").default(false),
+	isTrusted: boolean("is_trusted").default(false),
 	personalToken: text("personal_token")
 		.notNull()
 		.unique()

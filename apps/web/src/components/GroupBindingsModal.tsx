@@ -7,6 +7,7 @@ interface GroupBinding {
 	id: string;
 	chatId: string;
 	name: string;
+	status: "pending" | "approved" | "rejected";
 }
 
 interface KnownGroup {
@@ -103,7 +104,14 @@ export default function GroupBindingsModal({
 			);
 
 			if (res.ok) {
-				setStatus({ type: "success", message: "Group bound successfully!" });
+				const data = (await res.json()) as GroupBinding;
+				setStatus({
+					type: "success",
+					message:
+						data.status === "approved"
+							? "Group bound successfully!"
+							: "Request submitted! Waiting for approval.",
+				});
 				fetchBindings();
 				setSelectedChatId("");
 			} else {
@@ -166,10 +174,20 @@ export default function GroupBindingsModal({
 									key={binding.id}
 									className="flex justify-between items-center p-3"
 								>
-									<div className="flex items-center">
+									<div className="flex items-center flex-1">
 										<MessageCircle className="w-4 h-4 text-gray-400 mr-2" />
-										<span className="text-sm text-gray-700">
+										<span className="text-sm text-gray-700 mr-2">
 											{binding.name}
+										</span>
+										<span
+											className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${binding.status === "approved"
+													? "bg-green-100 text-green-800"
+													: binding.status === "rejected"
+														? "bg-red-100 text-red-800"
+														: "bg-yellow-100 text-yellow-800"
+												}`}
+										>
+											{binding.status}
 										</span>
 									</div>
 									<button
