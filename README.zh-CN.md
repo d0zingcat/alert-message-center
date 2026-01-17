@@ -95,7 +95,7 @@ docker-compose up -d
 
 ## 📜 更新日志
 
-所有版本的详细变更记录请查看 [CHANGELOG.md](CHANGELOG.md)。
+所有版本的详细变更记录请查看 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md)。
 
 ---
 

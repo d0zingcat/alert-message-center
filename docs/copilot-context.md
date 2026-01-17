@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.3.2)
+# Project Context for GitHub Copilot (v1.3.3)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -215,6 +215,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - **Hono RPC**: Utilize the type-safe client (`client.api...`) to ensure end-to-end type safety between backend and frontend.
   - **No Type Casting**: Avoid `as any` or `<any>` casts. Use type guards (`if`, `switch`, `instanceof`) or Zod schema validation to narrow types safely.
   - **AI Responsibility**: AI assistants MUST ensure every new or modified piece of code passes strict TypeScript and Biome checks. If a type is unknown, research the schema rather than defaulting to `any`.
+    - **Formatting**: All files MUST end with a single trailing newline (enforced by Biome). Ensure `package.json` and other configuration files are correctly formatted before committing.
 - **Vite Env Access**: When accessing Vite environment variables via `import.meta.env` (or casting `import.meta as any`), **always use optional chaining** (e.g., `meta.env?.VITE_...`). This prevents crashes if the environment is not initialized or if the code runs in a non-browser context during pre-rendering/testing.
 - **Frontend Resilience**:
   - Always check `res.ok` before attempting to parse or use API responses.
@@ -240,6 +241,10 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - **Database Initialization**: The Docker entrypoint automatically runs `bun run db:migrate:deploy` before starting the server to ensure the schema is up-to-date in new environments.
   - **Token Migration**: The `db:migrate:deploy` script (defined in `src/db/migrate.ts`) also handles legacy user token shortening to maintain consistency with the 8-character token logic introduced in v1.2.6.
   - **Drizzle Meta**: The `apps/server/drizzle/meta` directory MUST NOT be ignored by git (it was previously explicitly excluded in `.gitignore` but has been restored). This directory contains `_journal.json`, which is essential for `drizzle-kit` and the runtime migrator to verify migration integrity. Without it, migrations will fail in clean environments like Docker containers.
+
+  - **Multi-Replica Support**:
+    - **Migrations**: The `db:migrate:deploy` script uses **Postgres Advisory Locks** to prevent race conditions when multiple replicas start simultaneously. Only one replica will execute the migration; others will wait and verify.
+    - **Feishu Events**: The event handling logic is designed to be idempotent (`onConflictDoUpdate`), making it safe to run multiple replicas receiving duplicated events from Feishu (via WebSocket or Webhook).
 
 ## 8. Core Documents
 
