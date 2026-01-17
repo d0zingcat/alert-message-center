@@ -106,7 +106,6 @@ function GroupRequestsList() {
 	const fetchRequests = useCallback(async () => {
 		setLoading(true);
 		try {
-			// @ts-expect-error - groups requests might not be in the generated client yet
 			const res = await client.api.topics.groups.requests.$get(undefined, {
 				init: { credentials: "include" },
 			});
@@ -137,7 +136,6 @@ function GroupRequestsList() {
 		action: "approve" | "reject",
 	) => {
 		try {
-			// @ts-expect-error
 			await client.api.topics[":id"].groups[":bindingId"][action].$post(
 				{ param: { id: req.topicId, bindingId: req.id } },
 				{ init: { credentials: "include" } },
