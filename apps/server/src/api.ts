@@ -270,12 +270,21 @@ api.delete("/topics/:topicId/subscribe/:userId", requireAuth, async (c) => {
 
 // Get list of known groups (for selection)
 api.get("/groups", requireAuth, async (c) => {
+	const query = c.req.query("q")?.trim();
+	const limit = Math.min(Number(c.req.query("limit") || 100), 200);
+
+	let whereClause = undefined;
+	if (query) {
+		whereClause = sql`${knownGroupChats.name} ilike ${`%${query}%`}`;
+	}
+
 	// Return recent active groups
 	const groups = await db
 		.select()
 		.from(knownGroupChats)
+		.where(whereClause)
 		.orderBy(desc(knownGroupChats.lastActiveAt))
-		.limit(50);
+		.limit(limit);
 	return c.json(groups);
 });
 
