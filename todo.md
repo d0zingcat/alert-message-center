@@ -37,4 +37,5 @@
 - [x] **User Management UI**: Added "Admin" badges and a "Trusted" toggle in the User Management view.
 - [x] **Searchable Group Binding**: Implemented server-side search and searchable dropdown for smoother group chat management.
 - [x] **Bilingual Documentation**: Split README into English and Chinese versions for international outreach.
+- [x] **Multi-Replica Safety**: Implemented Postgres Advisory Locks for safe concurrent migrations.
 
