@@ -35,4 +35,6 @@
 - [x] **Migration Robustness**: Fixed migration failures in Docker by un-ignoring the drizzle meta directory.
 - [x] **Scalability & Security**: Implemented Trusted User system, ownership-based group binding, and Admin notification for topic requests.
 - [x] **User Management UI**: Added "Admin" badges and a "Trusted" toggle in the User Management view.
+- [x] **Searchable Group Binding**: Implemented server-side search and searchable dropdown for smoother group chat management.
+- [x] **Bilingual Documentation**: Split README into English and Chinese versions for international outreach.
 

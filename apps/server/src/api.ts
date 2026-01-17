@@ -11,8 +11,8 @@ import {
 	topics,
 	users,
 } from "./db/schema";
-import { type AuthSession, requireAdmin, requireAuth } from "./middleware";
 import { notifyAdminsOfNewTopic } from "./lib/admin-notifier";
+import { type AuthSession, requireAdmin, requireAuth } from "./middleware";
 
 const api = new Hono<{ Variables: { session: AuthSession } }>();
 
@@ -273,10 +273,9 @@ api.get("/groups", requireAuth, async (c) => {
 	const query = c.req.query("q")?.trim();
 	const limit = Math.min(Number(c.req.query("limit") || 100), 200);
 
-	let whereClause = undefined;
-	if (query) {
-		whereClause = sql`${knownGroupChats.name} ilike ${`%${query}%`}`;
-	}
+	const whereClause = query
+		? sql`${knownGroupChats.name} ilike ${`%${query}%`}`
+		: undefined;
 
 	// Return recent active groups
 	const groups = await db
@@ -319,10 +318,14 @@ api.post(
 		}
 
 		if (topic.createdBy !== session.id && !session.isAdmin) {
-			return c.json({ error: "Only topic owner or admin can bind groups" }, 403);
+			return c.json(
+				{ error: "Only topic owner or admin can bind groups" },
+				403,
+			);
 		}
 
-		const status = session.isAdmin || session.isTrusted ? "approved" : "pending";
+		const status =
+			session.isAdmin || session.isTrusted ? "approved" : "pending";
 
 		const result = await db
 			.insert(topicGroupChats)
@@ -345,7 +348,7 @@ api.post(
 				// Metadata passed to notifier for better context
 				isGroupBinding: true,
 				groupName: body.name,
-			} as any);
+			});
 		}
 
 		return c.json(result[0]);

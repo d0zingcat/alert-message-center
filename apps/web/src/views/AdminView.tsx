@@ -35,40 +35,44 @@ export default function AdminView() {
 						<button
 							type="button"
 							onClick={() => setActiveTab("load")}
-							className={`${activeTab === "load"
+							className={`${
+								activeTab === "load"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							System Load
 						</button>
 						<button
 							type="button"
 							onClick={() => setActiveTab("requests")}
-							className={`${activeTab === "requests"
+							className={`${
+								activeTab === "requests"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							Topic Requests
 						</button>
 						<button
 							type="button"
 							onClick={() => setActiveTab("group-requests")}
-							className={`${activeTab === "group-requests"
+							className={`${
+								activeTab === "group-requests"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							Group Bindings
 						</button>
 						<button
 							type="button"
 							onClick={() => setActiveTab("topics")}
-							className={`${activeTab === "topics"
+							className={`${
+								activeTab === "topics"
 									? "border-indigo-500 text-indigo-600"
 									: "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-								} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
+							} whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm`}
 						>
 							All Topics
 						</button>
@@ -102,7 +106,7 @@ function GroupRequestsList() {
 	const fetchRequests = useCallback(async () => {
 		setLoading(true);
 		try {
-			// @ts-ignore - groups requests might not be in the generated client yet
+			// @ts-expect-error - groups requests might not be in the generated client yet
 			const res = await client.api.topics.groups.requests.$get(undefined, {
 				init: { credentials: "include" },
 			});
@@ -133,7 +137,7 @@ function GroupRequestsList() {
 		action: "approve" | "reject",
 	) => {
 		try {
-			// @ts-ignore
+			// @ts-expect-error
 			await client.api.topics[":id"].groups[":bindingId"][action].$post(
 				{ param: { id: req.topicId, bindingId: req.id } },
 				{ init: { credentials: "include" } },
@@ -164,15 +168,13 @@ function GroupRequestsList() {
 								Group: <span className="text-indigo-600">{req.name}</span>
 							</p>
 							<p className="text-sm text-gray-500">
-								Topic: <span className="font-semibold">{req.topic?.name}</span> (
-								{req.topic?.slug})
+								Topic: <span className="font-semibold">{req.topic?.name}</span>{" "}
+								({req.topic?.slug})
 							</p>
 							<p className="text-sm text-gray-500">
 								Requested by: {req.creator?.name || "Unknown"}
 							</p>
-							<p className="text-xs text-gray-400 mt-1">
-								ID: {req.chatId}
-							</p>
+							<p className="text-xs text-gray-400 mt-1">ID: {req.chatId}</p>
 						</div>
 						<div className="flex gap-2">
 							<button
@@ -291,12 +293,13 @@ function TopicsManagement() {
 							</td>
 							<td className="px-6 py-4 whitespace-nowrap">
 								<span
-									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${topic.status === "approved"
+									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+										topic.status === "approved"
 											? "bg-green-100 text-green-800"
 											: topic.status === "rejected"
 												? "bg-red-100 text-red-800"
 												: "bg-yellow-100 text-yellow-800"
-										}`}
+									}`}
 								>
 									{topic.status}
 								</span>

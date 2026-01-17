@@ -1,50 +1,48 @@
 # Alert Message Center
 
+**README** | [简体中文](./README.zh-CN.md)
+
 [![Tech Stack](https://img.shields.io/badge/Stack-Bun%20%7C%20Hono%20%7C%20React-blue)](https://bun.sh)
 [![Database](https://img.shields.io/badge/Database-PostgreSQL-blue)](https://www.postgresql.org/)
 
-**Alert Message Center** 是一个现代化、企业级的告警路由与分发中心。它旨在将纷繁复杂的告警源（Prometheus, Grafana, 自建脚本等）与最终接收人解耦，通过 **飞书机器人私聊** 实现告警的精准触达。
+**Alert Message Center** is a modern, enterprise-grade alert routing and dispatching hub. It decouples complex alert sources (Prometheus, Grafana, custom scripts, etc.) from end recipients, ensuring precise alert delivery via **Feishu (Lark) private messages and group chats.**
 
 ---
 
-## 📸 界面预览
+## 📸 Preview
 
-### 1. 话题管理与个人信箱
-支持通过 **Topic (主题)** 订阅模式分发告警，同时也提供 **Personal Inbox (个人信箱)** 功能，无需创建话题即可快速给自己推送消息。
+### 1. Topic Management & Personal Inbox
+Supports alert distribution through the **Topic** subscription model, and also provides a **Personal Inbox** feature for quick self-notifications without creating a topic.
 ![Topics View](docs/images/topics_view.png)
 
-除了个人订阅外，您可以将 Topic 绑定至多个**飞书群聊**。
-> [!TIP]
-> **群聊发现**：请先将机器人邀请进入目标群聊。机器人入群后会触发自动感应，此时刷新管理页面即可在下拉菜单中看到并绑定该群组。
-
-### 2. 群聊告警分发
-支持将机器人加入飞书群聊，并将话题绑定到群聊中，实现告警的群组广播。
+### 2. Group Chat Alert Dispatch
+Supports adding the bot to Feishu group chats and binding topics to these groups for group-wide broadcasting.
 ![Group Binding](docs/images/group_binding.png)
 ![Group Alert](docs/images/group_alert.png)
 
-### 3. 管理员看板 (Live Stats)
-实时追踪全系统的告警负载、分发成功率以及各话题的热度。
+### 3. Admin Dashboard (Live Stats)
+Real-time tracking of system alert load, dispatch success rates, and topic popularity.
 ![Admin Dashboard](docs/images/admin_dashboard.png)
 
 ---
 
-## 🔥 核心特性
+## 🔥 Key Features
 
-- **🚀 极简推送 (Personal Inbox)**: 每个用户拥有专属的 Webhook Token，直接向 `/dm` 接口发送即可在飞书收到私聊，零配置成本。
-- **📢 主题订阅 (Topic Model)**: 灵活的“发布-订阅”机制。告警发送至 Topic，系统自动分发给所有订阅成员。
-- **👥 群聊分发 (Group Support)**: 告警可同步分发至绑定的飞书群聊，支持机器人自动发现与解绑。
-- **🛡️ 权限与审计**: 
-    - 话题创建需经过管理员审批。
-    - 记录完整的 `Alert Task` 日志，实现发送链路可追溯。
-- **📊 实时看板**: Grafana 风格的监控界面，直观展示系统运行健壮性。
-- **🔌 长连接模式 (WebSocket)**: 支持飞书开放平台长连接，无需公网 IP 或域名即可在内网环境接收事件回调。
-- **⚡ 高性能架构**: 基于 Bun + Hono 的全异步架构，毫秒级分发延迟。
+- **🚀 Zero-Config Personal Inbox**: Every user has a unique Webhook Token. Send directly to the `/dm` interface to receive messages on Feishu with zero configuration.
+- **📢 Topic Subscription Model**: Flexible "Publish-Subscribe" mechanism. Alerts sent to a Topic are automatically distributed to all subscribers.
+- **👥 Group Chat Distribution**: Alerts can be simultaneously dispatched to bound Feishu group chats, supporting automatic discovery and unbinding.
+- **🛡️ Permissions & Auditing**:
+    - Topic creation requires admin approval.
+    - Full `Alert Task` logs for end-to-end traceability.
+- **📊 Real-time Dashboard**: Grafana-style monitoring interface for system health visualization.
+- **🔌 WebSocket Mode**: Supports Feishu Open Platform WebSocket for intranet deployments without public IP or domain.
+- **⚡ High Performance**: Built on Bun + Hono for millisecond-level dispatch latency.
 
 ---
 
-## 🛠️ 技术栈
+## 🛠️ Tech Stack
 
-- **Runtime**: [Bun](https://bun.sh/) (高性能 TS 运行时)
+- **Runtime**: [Bun](https://bun.sh/) (High-performance TS runtime)
 - **Backend**: [Hono](https://hono.dev/) (Web Standards Based)
 - **Frontend**: [React](https://react.dev/) + [Vite](https://vitejs.dev/) + [Tailwind CSS](https://tailwindcss.com/)
 - **Database**: [PostgreSQL](https://www.postgresql.org/) + [Drizzle ORM](https://orm.drizzle.team/)
@@ -52,84 +50,53 @@
 
 ---
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 1. 飞书应用配置
-1.  登录 [飞书开放平台](https://open.feishu.cn/) 创建一个 **企业自建应用**。
-2.  在“应用能力”中开启 **机器人**。
-3.  在“权限管理”中申请 `im:message:send_as_bot` (以应用身份发送消息)。
-4.  获取 `App ID` 和 `App Secret`。
+### 1. Feishu App Configuration
+1. Login to the [Feishu Open Platform](https://open.feishu.cn/) and create an **Enterprise Custom App**.
+2. Enable **Bot** capability in "App Capabilities".
+3. Apply for `im:message:send_as_bot` permission in "Permission Management".
+4. Get your `App ID` and `App Secret`.
 
-### 2. 部署运行
+### 2. Deployment
 ```bash
-# 安装依赖
+# Install dependencies
 bun install
 
-# 配置环境变量 (apps/server/.env)
+# Configure environment variables (apps/server/.env)
 DATABASE_URL="postgresql://user:pass@localhost:5432/db"
 FEISHU_APP_ID="cli_xxx"
 FEISHU_APP_SECRET="xxx"
-ADMIN_EMAILS="user1@example.com,user2@example.com" # 管理员列表
+ADMIN_EMAILS="user1@example.com,user2@example.com"
 
-# 数据库推送/迁移
+# Database migration
 cd apps/server && bun run db:migrate:deploy
 
-# 启动开发环境
+# Start development
 bun run dev
 ```
 
-### 3. Docker 部署
-项目支持使用 Docker Compose 快速部署，且**数据库会自动进行初始化与迁移**：
-
+### 3. Docker Deployment
 ```bash
-# 复制并填写环境变量
 cp apps/server/.env.example .env
-
-# 启动所有服务 (Postgres + Server + Web)
 docker-compose up -d
 ```
 
 ---
 
 ## 🏗️ CI/CD
+Automatically builds and pushes Docker images to GitHub Container Registry (GHCR) on every push to `main`.
 
-项目通过 GitHub Actions 实现了自动化流水线：
+## 📜 Changelog
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
-- **自动化构建**: 每次推送至 `main` 分支或提交 Pull Request 时，会自动触发 Docker 镜像构建。
-- **镜像仓库**: 构建生成的镜像会同步推送到 GitHub Container Registry (GHCR)。
-- **镜像路径**: `ghcr.io/${USER}/alert-message-center` (包含前后端的统一镜像)
+## 📡 Webhook Usage
+- **Personal Inbox**: `POST /api/webhook/:your_token/dm`
+- **Topic**: `POST /api/webhook/:your_token/topic/:topic_slug`
 
----
-
-## 📜 更新日志
-
-所有版本的详细变更记录请查看 [CHANGELOG.md](CHANGELOG.md)。
-
----
-
-## 📡 Webhook 使用指南
-
-### 1. 发送给个人 (Personal Inbox)
-**URL**: `POST /api/webhook/:your_token/dm`
-**Body**: 
-```json
-{
-  "msg_type": "text",
-  "content": { "text": "这是一条私有告警" }
-}
-```
-
-### 2. 发送到主题 (Topic)
-**URL**: `POST /api/webhook/:your_token/topic/:topic_slug`
-**Body**: 同上。系统会自动根据该 Topic 的订阅列表进行广播。
-
----
-
-## 📂 项目结构
-
-- `apps/server`: 核心 API 服务，处理 OAuth、Webhook 解析与飞书分发。
-- `apps/web`: 响应式管理后台。
-- `docs/copilot-context.md`: 为 AI 辅助编程提供的深层架构背景。
+## 📂 Project Structure
+- `apps/server`: Core API service
+- `apps/web`: Responsive management dashboard
 
 ---
 *Created with ❤️ by the Alert Message Center Team.*

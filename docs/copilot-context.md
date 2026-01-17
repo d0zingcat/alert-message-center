@@ -1,4 +1,4 @@
-# Project Context for GitHub Copilot (v1.3.1)
+# Project Context for GitHub Copilot (v1.3.2)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
 
@@ -134,6 +134,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - When the bot is removed, the cached group is deleted from `known_group_chats`.
   - **Auto-Unbind**: All bindings in `topic_group_chats` for that `chat_id` are automatically deleted to ensure data consistency.
 - **Binding**: Users/Admins bind a Topic to a known Feishu Group in the UI.
+  - **Search**: The binding UI supports real-time, server-side debounced search by group name.
   - **Security**: Only the Topic Creator or an Admin can bind/unbind groups to a Topic.
   - **Approval**:
     - Normal users: Binding status is `pending` upon creation. Admins receive notification.
@@ -180,7 +181,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - `GET /api/users`: List users (Admin only).
 
 ### Feishu Group Management
-- `GET /api/groups`: List known groups (cached from bot events).
+- `GET /api/groups`: List known groups (cached from bot events). Supports `q` for search and `limit` parameters.
 - `GET /api/topics/:id/groups`: List group bindings for a topic.
 - `POST /api/topics/:id/groups`: Bind a group to a topic.
 - `DELETE /api/topics/:id/groups/:bindingId`: Unbind a group.
@@ -206,13 +207,15 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - **Imports**: Use relative imports.
 - **Styling**: Use Tailwind utility classes directly in JSX.
 - **Async/Await**: Prefer `async/await` over `.then()`.
-- **Type Safety**: strict TypeScript usage. Backend and Frontend share types via Hono RPC or shared interfaces. **Elimination of `any`** is a priority; use explicit interfaces (e.g., `WebhookBody`, `UserAccessTokenData`) for all externally sourced data.
-- **Linter & Formatter**:
-  - Framework: [Biome](https://biomejs.dev/).
-  - **Rules**: Strict configuration for `a11y`, `suspicious`, `style`, and `correctness`.
-  - **Tailwind**: `noUnknownAtRules` is configured to ignore Tailwind directives (`@tailwind`, `@apply`, etc.).
-  - **Enforcement**: CI/CD runs `biome check` to ensure compliance. **AI assistants MUST run `bun x biome check --write .` (or equivalent) in the respective app directory after every code modification to verify and fix lint/formatting issues before finalizing.** Avoid Use of `as any` is strictly prohibited except for specialized cases like `import.meta as any` (for Vite env) or very complex JSON spread operations. In those rare cases, use `// biome-ignore` with a clear explanation.
-  - **Vite Env Access**: When accessing Vite environment variables via `import.meta.env` (or casting `import.meta as any`), **always use optional chaining** (e.g., `meta.env?.VITE_...`). This prevents crashes if the environment is not initialized or if the code runs in a non-browser context during pre-rendering/testing.
+- **Strict Type Safety & `any` Prohibition**:
+  > [!IMPORTANT]
+  > **The usage of `any` is strictly prohibited.** This has been a recurring issue and must be avoided at all costs.
+  - **Explicit Interfaces**: Always define clear interfaces or types for API responses, webhook payloads, and complex objects.
+  - **Type Inference**: Leverage TypeScript's type inference. If a variable is initialized later, provide an explicit type during declaration (e.g., `let whereClause: SQL | undefined;`) instead of leaving it implicit.
+  - **Hono RPC**: Utilize the type-safe client (`client.api...`) to ensure end-to-end type safety between backend and frontend.
+  - **No Type Casting**: Avoid `as any` or `<any>` casts. Use type guards (`if`, `switch`, `instanceof`) or Zod schema validation to narrow types safely.
+  - **AI Responsibility**: AI assistants MUST ensure every new or modified piece of code passes strict TypeScript and Biome checks. If a type is unknown, research the schema rather than defaulting to `any`.
+- **Vite Env Access**: When accessing Vite environment variables via `import.meta.env` (or casting `import.meta as any`), **always use optional chaining** (e.g., `meta.env?.VITE_...`). This prevents crashes if the environment is not initialized or if the code runs in a non-browser context during pre-rendering/testing.
 - **Frontend Resilience**:
   - Always check `res.ok` before attempting to parse or use API responses.
   - Use `Array.isArray()` to verify that data expected to be a list actually is one, especially when mapping over it in JSX. This prevents "white page" crashes when the backend returns error objects instead of arrays.
@@ -240,6 +243,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 
 ## 8. Core Documents
 
-- **[README.md](file:///Users/lilithgames/Workspace/play/alert-message-center/README.md)**: Main project documentation, including quick start, tech stack overview, and Webhook usage guide.
-- **[CHANGELOG.md](file:///Users/lilithgames/Workspace/play/alert-message-center/CHANGELOG.md)**: Record of version changes, following the Keep a Changelog specification.
-- **[todo.md](file:///Users/lilithgames/Workspace/play/alert-message-center/todo.md)**: Task tracking and upcoming features.
+- **[README.md](file:///Users/lilithgames/Workspace/play/alert-message-center/README.md)**: Main project documentation (English version).
+- **[README.zh-CN.md](file:///Users/lilithgames/Workspace/play/alert-message-center/README.zh-CN.md)**: Simplified Chinese version of the documentation.
+- **[CHANGELOG.md](file:///Users/lilithgames/Workspace/play/alert-message-center/CHANGELOG.md)**: Record of version changes.
+- **[todo.md](file:///Users/lilithgames/Workspace/play/alert-message-center/todo.md)**: Task tracking.

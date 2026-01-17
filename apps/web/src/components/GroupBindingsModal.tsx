@@ -238,12 +238,13 @@ export default function GroupBindingsModal({
 											</span>
 										</div>
 										<span
-											className={`ml-3 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${binding.status === "approved"
+											className={`ml-3 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${
+												binding.status === "approved"
 													? "bg-green-100 text-green-700"
 													: binding.status === "rejected"
 														? "bg-red-100 text-red-700"
 														: "bg-amber-100 text-amber-700"
-												}`}
+											}`}
 										>
 											{binding.status}
 										</span>
@@ -268,8 +269,8 @@ export default function GroupBindingsModal({
 						Add Group Binding
 					</h4>
 					<p className="text-xs text-gray-500 mb-4 leading-relaxed">
-						Search and select a group where the <strong>Alert Messenger</strong> bot
-						has been added.
+						Search and select a group where the <strong>Alert Messenger</strong>{" "}
+						bot has been added.
 					</p>
 
 					<div className="flex flex-col gap-3">
@@ -288,7 +289,9 @@ export default function GroupBindingsModal({
 									placeholder="Search for a group name..."
 									value={searchQuery}
 									onChange={handleSearchChange}
-									onFocus={() => knownGroups.length > 0 && setShowDropdown(true)}
+									onFocus={() =>
+										knownGroups.length > 0 && setShowDropdown(true)
+									}
 									disabled={loading}
 								/>
 								{searchQuery && (
@@ -364,10 +367,11 @@ export default function GroupBindingsModal({
 
 					{status && (
 						<div
-							className={`mt-4 p-3 rounded-lg flex items-start gap-2 ${status.type === "success"
+							className={`mt-4 p-3 rounded-lg flex items-start gap-2 ${
+								status.type === "success"
 									? "bg-green-50 text-green-700 border border-green-100"
 									: "bg-red-50 text-red-700 border border-red-100"
-								}`}
+							}`}
 						>
 							<div className="text-sm font-medium">{status.message}</div>
 						</div>
