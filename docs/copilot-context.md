@@ -215,6 +215,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
   - **Hono RPC**: Utilize the type-safe client (`client.api...`) to ensure end-to-end type safety between backend and frontend.
   - **No Type Casting**: Avoid `as any` or `<any>` casts. Use type guards (`if`, `switch`, `instanceof`) or Zod schema validation to narrow types safely.
   - **AI Responsibility**: AI assistants MUST ensure every new or modified piece of code passes strict TypeScript and Biome checks. If a type is unknown, research the schema rather than defaulting to `any`.
+    - **Formatting**: All files MUST end with a single trailing newline (enforced by Biome). Ensure `package.json` and other configuration files are correctly formatted before committing.
 - **Vite Env Access**: When accessing Vite environment variables via `import.meta.env` (or casting `import.meta as any`), **always use optional chaining** (e.g., `meta.env?.VITE_...`). This prevents crashes if the environment is not initialized or if the code runs in a non-browser context during pre-rendering/testing.
 - **Frontend Resilience**:
   - Always check `res.ok` before attempting to parse or use API responses.
