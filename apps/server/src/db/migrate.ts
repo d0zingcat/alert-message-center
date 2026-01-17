@@ -56,6 +56,11 @@ async function main() {
 	}
 
 	try {
+		// Acquire advisory lock to prevent concurrent migrations
+		console.log("🔒 Acquiring advisory lock...");
+		await sql`SELECT pg_advisory_lock(1234567890)`;
+		console.log("🔒 Advisory lock acquired.");
+
 		await migrate(db, { migrationsFolder });
 		console.log("✅ Database migrations completed!");
 
@@ -64,6 +69,10 @@ async function main() {
 		console.error("❌ Migration failed:", error);
 		process.exit(1);
 	} finally {
+		// Release advisory lock
+		console.log("🔓 Releasing advisory lock...");
+		await sql`SELECT pg_advisory_unlock(1234567890)`;
+		console.log("🔓 Advisory lock released.");
 		await sql.end();
 	}
 }
