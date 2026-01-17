@@ -82,13 +82,15 @@ webhook.post("/:token/topic/:slug", async (c) => {
 		})
 		.filter((u): u is NonNullable<typeof u> => u !== null);
 
-	const groupRecipients: Recipient[] = topic.groupChats.map((g) => ({
-		type: "group",
-		id: g.id, // Binding ID
-		name: g.name,
-		feishuId: g.chatId,
-		idType: "chat_id" as FeishuReceiveIdType,
-	}));
+	const groupRecipients: Recipient[] = topic.groupChats
+		.filter((g) => g.status === "approved")
+		.map((g) => ({
+			type: "group",
+			id: g.id, // Binding ID
+			name: g.name,
+			feishuId: g.chatId,
+			idType: "chat_id" as FeishuReceiveIdType,
+		}));
 
 	const allRecipients: Recipient[] = [...userRecipients, ...groupRecipients];
 

@@ -10,6 +10,8 @@ interface User {
 	feishuUserId?: string;
 	email?: string;
 	personalToken?: string;
+	isTrusted?: boolean;
+	isAdmin?: boolean;
 }
 
 export default function UsersView() {
@@ -85,6 +87,28 @@ export default function UsersView() {
 		}
 	};
 
+	const handleToggleTrusted = async (user: User) => {
+		try {
+			await client.api.users[":id"].$put(
+				{
+					param: { id: user.id },
+					json: {
+						name: user.name,
+						feishuUserId: user.feishuUserId,
+						email: user.email,
+						isTrusted: !user.isTrusted,
+					},
+				},
+				{
+					init: { credentials: "include" },
+				},
+			);
+			fetchUsers();
+		} catch (error) {
+			console.error("Error toggling trusted status:", error);
+		}
+	};
+
 	if (loading) return <div className="p-4">Loading...</div>;
 
 	return (
@@ -110,9 +134,16 @@ export default function UsersView() {
 							<div className="px-4 py-4 sm:px-6">
 								<div className="flex items-center justify-between">
 									<div className="flex-1">
-										<p className="text-sm font-medium text-indigo-600 truncate">
-											{user.name}
-										</p>
+										<div className="flex items-center space-x-2">
+											<p className="text-sm font-medium text-indigo-600 truncate">
+												{user.name}
+											</p>
+											{user.isAdmin && (
+												<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+													Admin
+												</span>
+											)}
+										</div>
 										<div className="mt-2 sm:flex sm:justify-between">
 											<div className="sm:flex flex-col">
 												<p className="flex items-center text-sm text-gray-500">
@@ -134,11 +165,25 @@ export default function UsersView() {
 										</div>
 									</div>
 									{currentUser?.isAdmin && (
-										<div className="ml-4 flex items-center space-x-2">
+										<div className="ml-4 flex items-center space-x-4">
+											<div className="flex items-center">
+												<label className="inline-flex items-center cursor-pointer">
+													<input
+														type="checkbox"
+														className="sr-only peer"
+														checked={user.isTrusted || false}
+														onChange={() => handleToggleTrusted(user)}
+													/>
+													<div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
+													<span className="ms-3 text-sm font-medium text-gray-500">
+														Trusted
+													</span>
+												</label>
+											</div>
 											<button
 												type="button"
 												onClick={() => handleDelete(user.id)}
-												className="text-red-600 hover:text-red-900 p-2"
+												className="text-red-400 hover:text-red-600 p-2 transition-colors"
 											>
 												<Trash2 className="w-5 h-5" />
 											</button>
