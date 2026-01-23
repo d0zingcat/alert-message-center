@@ -252,6 +252,21 @@ function TopicsManagement() {
 		}
 	};
 
+	const handleToggleGlobal = async (topic: Topic) => {
+		try {
+			await client.api.topics[":id"].$post(
+				{
+					param: { id: topic.id },
+					json: { isGlobal: !topic.isGlobal },
+				},
+				{ init: { credentials: "include" } },
+			);
+			fetchAllTopics();
+		} catch (error) {
+			console.error(error);
+		}
+	};
+
 	if (loading) return <div>Loading topics...</div>;
 
 	return (
@@ -320,13 +335,27 @@ function TopicsManagement() {
 								{topic.approver?.name || "-"}
 							</td>
 							<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-								<button
-									type="button"
-									onClick={() => handleDelete(topic.id, topic.name)}
-									className="text-red-600 hover:text-red-900"
-								>
-									Delete
-								</button>
+								<div className="flex justify-end space-x-3">
+									<button
+										type="button"
+										onClick={() => handleToggleGlobal(topic)}
+										className={`${
+											topic.isGlobal
+												? "text-purple-600 hover:text-purple-900"
+												: "text-gray-600 hover:text-gray-900"
+										}`}
+										title={topic.isGlobal ? "Disable Global" : "Enable Global"}
+									>
+										{topic.isGlobal ? "Make Private" : "Make Global"}
+									</button>
+									<button
+										type="button"
+										onClick={() => handleDelete(topic.id, topic.name)}
+										className="text-red-600 hover:text-red-900"
+									>
+										Delete
+									</button>
+								</div>
 							</td>
 						</tr>
 					))}
