@@ -13,6 +13,7 @@ interface Topic {
 	name: string;
 	slug: string;
 	description?: string;
+	isGlobal?: boolean;
 	status: "pending" | "approved" | "rejected";
 	subscriptions?: { id: string }[];
 	creator?: TopicUser;
@@ -282,8 +283,15 @@ function TopicsManagement() {
 					{topics.map((topic) => (
 						<tr key={topic.id}>
 							<td className="px-6 py-4 whitespace-nowrap">
-								<div className="text-sm font-medium text-gray-900">
-									{topic.name}
+								<div className="flex items-center">
+									<div className="text-sm font-medium text-gray-900">
+										{topic.name}
+									</div>
+									{topic.isGlobal && (
+										<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+											Global
+										</span>
+									)}
 								</div>
 								<div className="text-sm text-gray-500 font-mono">
 									{topic.slug}
@@ -407,7 +415,14 @@ function TopicRequestsList() {
 				{requests.map((req) => (
 					<li key={req.id} className="py-4 flex justify-between items-center">
 						<div>
-							<p className="font-medium text-gray-900">{req.name}</p>
+							<div className="flex items-center">
+								<p className="font-medium text-gray-900">{req.name}</p>
+								{req.isGlobal && (
+									<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+										Global
+									</span>
+								)}
+							</div>
 							<p className="text-sm text-gray-500">
 								Slug: <span className="font-mono">{req.slug}</span>
 							</p>

@@ -17,58 +17,16 @@ interface Recipient {
 
 const webhook = new Hono();
 
-webhook.post("/:token/topic/:slug", async (c) => {
-	const token = c.req.param("token");
-	const slug = c.req.param("slug");
-	logger.info({ token, slug }, "[Webhook] Received request");
-
-	// 0. Find the User by Token
-	const user = await db.query.users.findFirst({
-		where: eq(users.personalToken, token),
-	});
-
-	if (!user) {
-		logger.warn({ token }, "[Webhook] Invalid personal token");
-		return c.json({ error: "Invalid personal token" }, 401);
-	}
-	// biome-ignore lint/suspicious/noExplicitAny: Webhook body can be any arbitrary JSON
-	let body: Record<string, any>;
-	try {
-		const rawBody = await c.req.text();
-		logger.debug({ bodyLength: rawBody.length }, "[Webhook] Received raw body");
-		if (!rawBody || rawBody.trim() === "") {
-			return c.json({ error: "Empty body" }, 400);
-		}
-		body = JSON.parse(rawBody);
-	} catch (e) {
-		logger.error({ err: e }, "[Webhook] Failed to parse JSON body");
-		return c.json({ error: "Invalid JSON body" }, 400);
-	}
-
-	// 1. Find the Topic
-	const topic = await db.query.topics.findFirst({
-		where: eq(topics.slug, slug),
-		with: {
-			subscriptions: {
-				with: {
-					user: true,
-				},
-			},
-			groupChats: true,
-		},
-	});
-
-	if (!topic) {
-		logger.warn({ slug }, "[Webhook] Topic not found");
-		return c.json({ error: "Topic not found" }, 404);
-	}
-
-	logger.info({ topicName: topic.name }, "[Webhook] Found topic");
-
+const dispatchAlert = async (
+	c: any,
+	topic: any,
+	body: any,
+	user: any | null,
+) => {
 	// 2. Collect recipients
-	const userRecipients: Recipient[] = topic.subscriptions
-		.map((sub) => sub.user)
-		.map((u) => {
+	const userRecipients: Recipient[] = (topic.subscriptions || [])
+		.map((sub: any) => sub.user)
+		.map((u: any) => {
 			if (!u || !u.feishuUserId) return null;
 			return {
 				type: "user" as const,
@@ -80,11 +38,11 @@ webhook.post("/:token/topic/:slug", async (c) => {
 					: "user_id") as FeishuReceiveIdType,
 			};
 		})
-		.filter((u): u is NonNullable<typeof u> => u !== null);
+		.filter((u: any): u is Recipient => u !== null);
 
-	const groupRecipients: Recipient[] = topic.groupChats
-		.filter((g) => g.status === "approved")
-		.map((g) => ({
+	const groupRecipients: Recipient[] = (topic.groupChats || [])
+		.filter((g: any) => g.status === "approved")
+		.map((g: any) => ({
 			type: "group",
 			id: g.id, // Binding ID
 			name: g.name,
@@ -98,7 +56,7 @@ webhook.post("/:token/topic/:slug", async (c) => {
 		.insert(alertTasks)
 		.values({
 			topicSlug: topic.slug,
-			senderId: user.id,
+			senderId: user?.id || null, // Global topic might not have a sender
 			status: "processing",
 			recipientCount: allRecipients.length,
 			successCount: 0,
@@ -272,7 +230,7 @@ webhook.post("/:token/topic/:slug", async (c) => {
 				taskId: task.id,
 				successCount,
 				totalCount: allRecipients.length,
-				slug,
+				slug: topic.slug,
 			},
 			"[Webhook] Task processed",
 		);
@@ -284,6 +242,115 @@ webhook.post("/:token/topic/:slug", async (c) => {
 		status: "processing",
 		recipientCount: allRecipients.length,
 	});
+};
+
+webhook.post("/topic/:slug", async (c) => {
+	const slug = c.req.param("slug");
+	logger.info({ slug }, "[Webhook] Received global request");
+
+	// 1. Find the Topic
+	const topic = await db.query.topics.findFirst({
+		where: eq(topics.slug, slug),
+		with: {
+			subscriptions: {
+				with: {
+					user: true,
+				},
+			},
+			groupChats: true,
+		},
+	});
+
+	if (!topic) {
+		logger.warn({ slug }, "[Webhook] Topic not found");
+		return c.json({ error: "Topic not found" }, 404);
+	}
+
+	if (!topic.isGlobal) {
+		logger.warn({ slug }, "[Webhook] Topic is not global");
+		return c.json(
+			{ error: "This topic requires a personal token to send alerts" },
+			401,
+		);
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: Webhook body can be any arbitrary JSON
+	let body: Record<string, any>;
+	try {
+		const rawBody = await c.req.text();
+		if (!rawBody || rawBody.trim() === "") {
+			return c.json({ error: "Empty body" }, 400);
+		}
+		body = JSON.parse(rawBody);
+	} catch (_e) {
+		return c.json({ error: "Invalid JSON body" }, 400);
+	}
+
+	return dispatchAlert(c, topic, body, null);
+});
+
+webhook.post("/:token/topic/:slug", async (c) => {
+	const token = c.req.param("token");
+	const slug = c.req.param("slug");
+	logger.info({ token, slug }, "[Webhook] Received request");
+
+	// 1. Find the Topic
+	const topic = await db.query.topics.findFirst({
+		where: eq(topics.slug, slug),
+		with: {
+			subscriptions: {
+				with: {
+					user: true,
+				},
+			},
+			groupChats: true,
+		},
+	});
+
+	if (!topic) {
+		logger.warn({ slug }, "[Webhook] Topic not found");
+		return c.json({ error: "Topic not found" }, 404);
+	}
+
+	let user: any = null;
+	if (!topic.isGlobal) {
+		// 0. Find the User by Token
+		user = await db.query.users.findFirst({
+			where: eq(users.personalToken, token),
+		});
+
+		if (!user) {
+			logger.warn({ token }, "[Webhook] Invalid personal token");
+			return c.json({ error: "Invalid personal token" }, 401);
+		}
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: Webhook body can be any arbitrary JSON
+	let body: Record<string, any>;
+	try {
+		const rawBody = await c.req.text();
+		if (!rawBody || rawBody.trim() === "") {
+			return c.json({ error: "Empty body" }, 400);
+		}
+		body = JSON.parse(rawBody);
+	} catch (_e) {
+		return c.json({ error: "Invalid JSON body" }, 400);
+	}
+
+	return dispatchAlert(c, topic, body, user);
+});
+
+webhook.all("/topic/:slug", (c) => {
+	return c.json(
+		{
+			error: "Method not allowed",
+			message: "Please use POST to send alerts to this webhook",
+			format: "POST /webhook/topic/:slug",
+			example:
+				'curl -X POST -H "Content-Type: application/json" -d \'{"content":{"text":"Hello"}}\' URL',
+		},
+		405,
+	);
 });
 
 webhook.post("/:token/dm", async (c) => {
