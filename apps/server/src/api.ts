@@ -180,7 +180,7 @@ api.put(
 			.update(topics)
 			.set({
 				...body,
-				isGlobal: body.isGlobal ?? (undefined as any),
+				isGlobal: body.isGlobal !== undefined ? body.isGlobal : undefined,
 			})
 			.where(eq(topics.id, id))
 			.returning();

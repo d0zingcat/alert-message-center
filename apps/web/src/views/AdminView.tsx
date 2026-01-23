@@ -1,3 +1,4 @@
+import { Globe, Lock, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { client } from "../lib/client";
 import SystemLoadView from "./SystemLoadView";
@@ -254,7 +255,7 @@ function TopicsManagement() {
 
 	const handleToggleGlobal = async (topic: Topic) => {
 		try {
-			await client.api.topics[":id"].$post(
+			await client.api.topics[":id"].$put(
 				{
 					param: { id: topic.id },
 					json: { isGlobal: !topic.isGlobal },
@@ -302,9 +303,15 @@ function TopicsManagement() {
 									<div className="text-sm font-medium text-gray-900">
 										{topic.name}
 									</div>
-									{topic.isGlobal && (
-										<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+									{topic.isGlobal ? (
+										<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-tight">
+											<Globe className="w-2.5 h-2.5 mr-1" />
 											Global
+										</span>
+									) : (
+										<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-tight">
+											<Lock className="w-2.5 h-2.5 mr-1" />
+											Private
 										</span>
 									)}
 								</div>
@@ -335,24 +342,35 @@ function TopicsManagement() {
 								{topic.approver?.name || "-"}
 							</td>
 							<td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-								<div className="flex justify-end space-x-3">
+								<div className="flex justify-end space-x-2">
 									<button
 										type="button"
 										onClick={() => handleToggleGlobal(topic)}
-										className={`${
+										className={`inline-flex items-center px-3 py-1 rounded-md text-xs font-medium transition-colors border ${
 											topic.isGlobal
-												? "text-purple-600 hover:text-purple-900"
-												: "text-gray-600 hover:text-gray-900"
+												? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+												: "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
 										}`}
 										title={topic.isGlobal ? "Disable Global" : "Enable Global"}
 									>
-										{topic.isGlobal ? "Make Private" : "Make Global"}
+										{topic.isGlobal ? (
+											<>
+												<Lock className="w-3 h-3 mr-1" />
+												Make Private
+											</>
+										) : (
+											<>
+												<Globe className="w-3 h-3 mr-1" />
+												Make Global
+											</>
+										)}
 									</button>
 									<button
 										type="button"
 										onClick={() => handleDelete(topic.id, topic.name)}
-										className="text-red-600 hover:text-red-900"
+										className="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition-colors"
 									>
+										<Trash2 className="w-3 h-3 mr-1" />
 										Delete
 									</button>
 								</div>
@@ -446,9 +464,15 @@ function TopicRequestsList() {
 						<div>
 							<div className="flex items-center">
 								<p className="font-medium text-gray-900">{req.name}</p>
-								{req.isGlobal && (
-									<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+								{req.isGlobal ? (
+									<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-tight">
+										<Globe className="w-2.5 h-2.5 mr-1" />
 										Global
+									</span>
+								) : (
+									<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-tight">
+										<Lock className="w-2.5 h-2.5 mr-1" />
+										Private
 									</span>
 								)}
 							</div>
