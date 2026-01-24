@@ -1,6 +1,6 @@
 {
 	"name": "alertmessagecenter",
-	"version": "1.1.1",
+	"version": "1.4.0",
 	"workspaces": [
 		"apps/*"
 	],

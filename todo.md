@@ -16,6 +16,7 @@
 ## Phase 2: Enhancements
 - [x] **Authentication**: Feishu SSO integration and role-based access control.
 - [x] **Global Monitoring Dashboard**: Real-time System Load metrics (Grafana-style).
+- [x] **Global Topics**: Support for broadcasting alerts to all users automatically.
 - [ ] **Message Preview**: Preview Feishu card JSON in the UI.
 - [x] **History/Logs**: Basic tracking for sent alerts (Alert Tasks/Logs).
 - [x] **Admin Topic Management**: Approve, reject, and delete topics (with audit trail).

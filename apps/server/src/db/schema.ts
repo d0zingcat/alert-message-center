@@ -20,6 +20,7 @@ export const topics = pgTable("topics", {
 	status: text("status", { enum: ["pending", "approved", "rejected"] })
 		.default("approved")
 		.notNull(),
+	isGlobal: boolean("is_global").default(false).notNull(),
 	createdBy: text("created_by").references(() => users.id),
 	approvedBy: text("approved_by").references(() => users.id),
 	createdAt: timestamp("created_at").defaultNow().notNull(),

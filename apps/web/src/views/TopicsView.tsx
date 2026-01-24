@@ -1,6 +1,8 @@
 import {
 	Check,
 	Copy,
+	Globe,
+	Lock,
 	Plus,
 	Settings,
 	ShieldCheck,
@@ -35,6 +37,7 @@ interface Topic {
 	creator?: TopicUser;
 	approver?: TopicUser;
 	createdBy?: string;
+	isGlobal?: boolean;
 	status?: string;
 	createdAt?: string;
 }
@@ -55,6 +58,7 @@ export default function TopicsView() {
 		name: "",
 		slug: "",
 		description: "",
+		isGlobal: false,
 	});
 	const [submitStatus, setSubmitStatus] = useState<{
 		type: "success" | "error";
@@ -137,6 +141,7 @@ export default function TopicsView() {
 						name: string;
 						slug: string;
 						description?: string;
+						isGlobal?: boolean;
 					},
 				},
 				{
@@ -151,7 +156,7 @@ export default function TopicsView() {
 						? "Topic created successfully!"
 						: "Request submitted! Waiting for approval.",
 				});
-				setFormData({ name: "", slug: "", description: "" });
+				setFormData({ name: "", slug: "", description: "", isGlobal: false });
 				fetchTopics();
 				fetchMyRequests();
 				setTimeout(() => {
@@ -294,6 +299,15 @@ export default function TopicsView() {
 		return `${baseUrl}/webhook/${currentUser.personalToken}/topic/${topicSlug}`;
 	};
 
+	const getGlobalWebhookUrl = (topicSlug: string) => {
+		// biome-ignore lint/suspicious/noExplicitAny: Vite env access
+		const meta = import.meta as any;
+		const baseUrl = (
+			meta.env?.VITE_WEBHOOK_BASE_URL || window.location.origin
+		).replace(/\/$/, "");
+		return `${baseUrl}/webhook/topic/${topicSlug}`;
+	};
+
 	const getDmWebhookUrl = () => {
 		if (!currentUser?.personalToken) return "";
 		// biome-ignore lint/suspicious/noExplicitAny: Vite env access
@@ -422,8 +436,19 @@ export default function TopicsView() {
 								<div className="flex items-center justify-between">
 									<div className="flex-1">
 										<div className="flex items-center justify-between">
-											<p className="text-sm font-medium text-indigo-600 truncate">
+											<p className="text-sm font-medium text-indigo-600 truncate flex items-center">
 												{topic.name}
+												{topic.isGlobal ? (
+													<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-tight">
+														<Globe className="w-2.5 h-2.5 mr-1" />
+														Global
+													</span>
+												) : (
+													<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-tight">
+														<Lock className="w-2.5 h-2.5 mr-1" />
+														Private
+													</span>
+												)}
 											</p>
 											<div className="flex items-center space-x-2">
 												<button
@@ -509,37 +534,94 @@ export default function TopicsView() {
 													)}
 												</div>
 												{currentUser && (
-													<div className="mt-3 bg-gray-50 p-2 rounded border border-gray-200">
-														<div className="flex justify-between items-center">
-															<span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-																Your Personal Webhook
-															</span>
-															<button
-																type="button"
-																onClick={() =>
-																	copyToClipboard(
-																		getWebhookUrl(topic.slug),
-																		topic.id,
-																	)
-																}
-																className="text-indigo-600 hover:text-indigo-800 flex items-center text-xs font-medium"
-															>
-																{copiedId === topic.id ? (
-																	<>
-																		<Check className="w-3 h-3 mr-1" />
-																		Copied!
-																	</>
-																) : (
-																	<>
-																		<Copy className="w-3 h-3 mr-1" />
-																		Copy URL
-																	</>
-																)}
-															</button>
+													<div
+														className={`mt-3 ${topic.isGlobal ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-3"}`}
+													>
+														<div className="bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col justify-between">
+															<div>
+																<div className="flex justify-between items-center mb-1.5">
+																	<span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+																		Your Personal Webhook
+																	</span>
+																	<button
+																		type="button"
+																		onClick={() =>
+																			copyToClipboard(
+																				getWebhookUrl(topic.slug),
+																				topic.id,
+																			)
+																		}
+																		className="text-indigo-600 hover:text-indigo-800 flex items-center text-xs font-semibold bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm transition-all hover:shadow hover:translate-y-[-1px]"
+																	>
+																		{copiedId === topic.id ? (
+																			<>
+																				<Check className="w-3 h-3 mr-1" />
+																				Copied
+																			</>
+																		) : (
+																			<>
+																				<Copy className="w-3 h-3 mr-1" />
+																				Copy URL
+																			</>
+																		)}
+																	</button>
+																</div>
+																<div className="text-[11px] font-mono text-gray-600 break-all select-all bg-white/60 p-1.5 rounded border border-gray-100/50 leading-relaxed">
+																	{getWebhookUrl(topic.slug)}
+																</div>
+															</div>
+															{topic.isGlobal && (
+																<p className="mt-1.5 text-[10px] text-gray-400 italic">
+																	* Requires your personal token to identify you
+																	as the sender.
+																</p>
+															)}
 														</div>
-														<div className="mt-1 text-xs font-mono text-gray-600 break-all select-all">
-															{getWebhookUrl(topic.slug)}
-														</div>
+
+														{topic.isGlobal && (
+															<div className="bg-purple-50/50 p-3 rounded-lg border border-purple-100 shadow-sm relative overflow-hidden group flex flex-col justify-between">
+																<div className="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-20 transition-opacity">
+																	<Globe className="w-12 h-12 text-purple-600" />
+																</div>
+																<div className="flex justify-between items-center mb-1.5">
+																	<div className="flex items-center">
+																		<Globe className="w-3.5 h-3.5 mr-1.5 text-purple-500" />
+																		<span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">
+																			Global Webhook (Public)
+																		</span>
+																	</div>
+																	<button
+																		type="button"
+																		onClick={() =>
+																			copyToClipboard(
+																				getGlobalWebhookUrl(topic.slug),
+																				`${topic.id}-global`,
+																			)
+																		}
+																		className="text-purple-600 hover:text-purple-800 flex items-center text-xs font-semibold bg-white px-2 py-0.5 rounded border border-purple-200 shadow-sm transition-all hover:shadow hover:translate-y-[-1px]"
+																	>
+																		{copiedId === `${topic.id}-global` ? (
+																			<>
+																				<Check className="w-3 h-3 mr-1" />
+																				Copied
+																			</>
+																		) : (
+																			<>
+																				<Copy className="w-3 h-3 mr-1" />
+																				Copy URL
+																			</>
+																		)}
+																	</button>
+																</div>
+																<div className="text-[11px] font-mono text-purple-800 break-all select-all bg-white/60 p-1.5 rounded border border-purple-100/50 leading-relaxed">
+																	{getGlobalWebhookUrl(topic.slug)}
+																</div>
+																<p className="mt-1.5 text-[10px] text-purple-500 italic">
+																	* Global topics can receive alerts without a
+																	personal token.
+																</p>
+															</div>
+														)}
 													</div>
 												)}
 											</div>
@@ -665,12 +747,34 @@ export default function TopicsView() {
 							id="topic-slug"
 							type="text"
 							required
+							pattern="[a-zA-Z0-9-]+"
+							title="Slug must only contain alphanumeric characters and hyphens"
 							className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 text-gray-900"
 							value={formData.slug}
 							onChange={(e) =>
 								setFormData({ ...formData, slug: e.target.value })
 							}
 						/>
+					</div>
+					<div className="flex items-center">
+						<input
+							id="is-global"
+							type="checkbox"
+							className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+							checked={formData.isGlobal || false}
+							onChange={(e) =>
+								setFormData({ ...formData, isGlobal: e.target.checked })
+							}
+						/>
+						<label
+							htmlFor="is-global"
+							className="ml-2 block text-sm text-gray-900 font-medium"
+						>
+							Global Topic
+						</label>
+						<p className="ml-2 text-xs text-gray-500">
+							(Broadcast to ALL users. Requires Admin approval)
+						</p>
 					</div>
 					<div>
 						<label

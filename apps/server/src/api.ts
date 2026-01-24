@@ -18,8 +18,15 @@ const api = new Hono<{ Variables: { session: AuthSession } }>();
 
 const topicSchema = z.object({
 	name: z.string().min(1),
-	slug: z.string().min(1),
+	slug: z
+		.string()
+		.min(1)
+		.regex(
+			/^[a-z0-9-]+$/i,
+			"Slug must only contain alphanumeric characters and hyphens",
+		),
 	description: z.string().optional(),
+	isGlobal: z.boolean().optional(),
 });
 
 const groupBindingSchema = z.object({
@@ -143,6 +150,7 @@ api.post("/topics", requireAuth, zValidator("json", topicSchema), async (c) => {
 		.insert(topics)
 		.values({
 			...body,
+			isGlobal: body.isGlobal ?? false,
 			status,
 			createdBy: session.id,
 			approvedBy: session.isAdmin || session.isTrusted ? session.id : null,
@@ -170,7 +178,10 @@ api.put(
 		const body = c.req.valid("json");
 		const result = await db
 			.update(topics)
-			.set(body)
+			.set({
+				...body,
+				isGlobal: body.isGlobal !== undefined ? body.isGlobal : undefined,
+			})
 			.where(eq(topics.id, id))
 			.returning();
 		return c.json(result[0]);
