@@ -1,6 +1,6 @@
 {
 	"name": "@alertmessagecenter/web",
-	"version": "1.3.3",
+	"version": "1.4.0",
 	"type": "module",
 	"scripts": {
 		"dev": "bun run --env-file .env vite",

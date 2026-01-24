@@ -1,6 +1,13 @@
-# Project Context for GitHub Copilot (v1.3.3)
+# Project Context for GitHub Copilot (v1.4.0)
 
 This document provides technical context, architectural decisions, and code conventions for the **Alert Message Center** project. It is intended to help AI assistants understand the codebase.
+
+## 0. AI/Agent Specific Instructions
+> [!IMPORTANT]
+> **AI Agents MUST read [AGENTS.md](../AGENTS.md) first.** It contains critical information about:
+> - Build/lint/test commands.
+> - Required code style (tabs, double quotes, naming conventions).
+> - Hard rules (NO `any`, Biome checks).
 
 ## 1. Project Overview
 
@@ -41,6 +48,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - `name`: Display name (e.g., "Payment Service Errors").
     - `slug`: URL-safe identifier (e.g., `payment-errors`). Used in webhook URLs.
     - `description`: Optional text.
+    - `isGlobal`: Boolean flag. If true, alerts are sent to all users automatically.
     - `status`: `pending`, `approved`, or `rejected`.
     - `createdBy`: Foreign Key -> `users.id`.
     - `approvedBy`: Foreign Key -> `users.id`.
@@ -115,7 +123,11 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
     - **Topic-based**: `POST /api/webhook/:token/topic/:slug`
     - **Direct (Inbox)**: `POST /api/webhook/:token/dm`
 2.  **Lookup**:
-    - For Topic-based: Find `Topic` by `slug` and fetch all `subscriptions`.
+    - For Topic-based: Find `Topic` by `slug`.
+    - **Recipients**:
+        - If `isGlobal` is true: Fetch all active users from DB.
+        - If not global: Fetch all `subscriptions` for that topic.
+        - Always fetch all bound `topic_group_chats`.
     - For Direct: Identify the user via `token`.
 3.  **Dispatch**:
     - Call `FeishuClient.sendMessage` for each recipient.
@@ -171,7 +183,7 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 - `GET /api/topics/my-requests`: List user's own topic requests.
 - `GET /api/topics/requests`: List pending topic requests (Admin only).
 - `GET /api/topics/all`: List all topics regardless of status (Admin only).
-- `POST /api/topics`: Create a topic (Admin creates approved, User creates pending).
+- `POST /api/topics`: Create a topic (Admin/Trusted creates approved, User creates pending; Supports `isGlobal`).
 - `POST /api/topics/:id/approve`: Approve a topic request (Admin only).
 - `POST /api/topics/:id/reject`: Reject a topic request (Admin only).
 - `DELETE /api/topics/:id`: Delete a topic (Admin only).
@@ -250,5 +262,6 @@ The database schema is defined in `apps/server/src/db/schema.ts`.
 
 - **[README.md](file:///Users/lilithgames/Workspace/play/alert-message-center/README.md)**: Main project documentation (English version).
 - **[README.zh-CN.md](file:///Users/lilithgames/Workspace/play/alert-message-center/README.zh-CN.md)**: Simplified Chinese version of the documentation.
+- **[AGENTS.md](file:///Users/lilithgames/Workspace/play/alert-message-center/AGENTS.md)**: Specialized instructions and conventions for AI agents.
 - **[CHANGELOG.md](file:///Users/lilithgames/Workspace/play/alert-message-center/CHANGELOG.md)**: Record of version changes.
 - **[todo.md](file:///Users/lilithgames/Workspace/play/alert-message-center/todo.md)**: Task tracking.

@@ -150,7 +150,7 @@ api.post("/topics", requireAuth, zValidator("json", topicSchema), async (c) => {
 		.insert(topics)
 		.values({
 			...body,
-			isGlobal: session.isAdmin ? (body.isGlobal ?? false) : false,
+			isGlobal: body.isGlobal ?? false,
 			status,
 			createdBy: session.id,
 			approvedBy: session.isAdmin || session.isTrusted ? session.id : null,

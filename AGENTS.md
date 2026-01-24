@@ -4,7 +4,7 @@ This document provides instructions for AI agents working on the Alert Message C
 
 ## 🛠 Commands
 
-### Development & Build
+### Workspace Operations
 - **Install**: `bun install`
 - **Root Dev**: `bun run dev` (starts both server and web)
 - **Root Build**: `bun run build`
@@ -25,6 +25,10 @@ This document provides instructions for AI agents working on the Alert Message C
 - **Dev**: `bun run dev`
 - **Build**: `bun run build`
 
+### Testing
+- No automated tests currently exist in the repository. If adding tests, use **Bun Test**.
+- **Run Single Test**: `bun test path/to/file.test.ts`
+
 ---
 
 ## 📜 Code Style & Conventions
@@ -35,7 +39,7 @@ This document provides instructions for AI agents working on the Alert Message C
 - **Naming**: 
   - Variables/Functions: `camelCase`
   - Components/Classes/Interfaces: `PascalCase`
-  - Database Tables: `snake_case` (e.g., `topic_group_chats`)
+  - Database Tables/Columns: `snake_case` (e.g., `topic_group_chats`)
   - URL Slugs: `kebab-case`
 
 ### 2. TypeScript & Type Safety
@@ -46,7 +50,7 @@ This document provides instructions for AI agents working on the Alert Message C
 
 ### 3. Backend (Hono + Drizzle)
 - **Routing**: Group logic into sub-apps (e.g., `api.ts`, `auth.ts`, `webhook.ts`).
-- **Database**: Use Drizzle ORM. Prefer relational queries where possible.
+- **Database**: Use Drizzle ORM. Prefer relational queries where possible (`db.query.xxx.findMany`).
 - **Validation**: Use `@hono/zod-validator` for request validation.
 - **Logging**: Use the structured logger in `src/lib/logger.ts` (Pino). 
   - **Pattern**: `logger.error({ err, context }, "Message")`.
@@ -76,3 +80,4 @@ This document provides instructions for AI agents working on the Alert Message C
 - **Biome First**: Always run `bun run check` before concluding a task.
 - **Preserve Patterns**: Follow existing structure in `apps/server/src` and `apps/web/src`.
 - **Minimalism**: Fix bugs minimally. Avoid large refactors unless requested.
+- **Context**: Agent-specific context is located in `@docs/`. Refer to `docs/copilot-context.md` for additional instructions.

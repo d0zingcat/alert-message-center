@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **CHANGELOG** | [简体中文](./CHANGELOG.zh-CN.md)
 
+## [1.4.0] - 2026-01-23
+
+### Added
+- **Global Topics**: Introduced a new topic type that broadcasts alerts to all users automatically.
+    - **User Requests**: All users can now request a topic to be "Global" during creation.
+    - **Admin Control**: Admins can promote any topic to "Global" or create new global topics via the Admin Dashboard.
+    - **Automatic Distribution**: Alerts sent to Global Topics are delivered to every registered user without requiring individual subscriptions.
+    - **UI Indicators**: Added "Global" badges and specialized management actions in the Topics and Admin views.
+
 ## [1.3.3] - 2026-01-17
 
 ### Added
