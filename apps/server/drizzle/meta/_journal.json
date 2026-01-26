@@ -8,6 +8,13 @@
       "when": 1768448660268,
       "tag": "0000_stiff_electro",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1769406633423,
+      "tag": "0001_shocking_hawkeye",
+      "breakpoints": true
     }
   ]
 }
