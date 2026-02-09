@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **CHANGELOG** | [简体中文](./CHANGELOG.zh-CN.md)
 
+## [1.5.0] - 2026-02-09
+
+### Added
+- **File Attachment Support**: Users can now send files and images via the dashboard and API.
+- **Multipart Form-Data Support**: Webhook endpoint now handles `multipart/form-data` for file uploads.
+- **Git Pre-commit Hooks**: Automated linting and formatting on staged files using Husky and Biome.
+- **Sequential Message Dispatch**: Support for sending text and attachments as multiple sequential messages in a single request.
+- **SendAlertForm Component**: New UI component for sending alerts with attachments directly from the topic view.
+
+### Fixed
+- **Feishu SDK Bun Compatibility**: Resolved a crash when uploading files in the Bun environment by using temporary files and `fs.ReadStream`.
+- **Drizzle ORM Prototype Error**: Fixed a `null is not an object` crash during database insertion by normalizing request bodies.
+- **Attachment Precedence**: Fixed an issue where attachments were ignored if text content was also present.
+
 ## [1.4.0] - 2026-01-23
 
 ### Added

@@ -1,6 +1,6 @@
 {
 	"name": "alertmessagecenter",
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"workspaces": [
 		"apps/*"
 	],
@@ -10,9 +10,18 @@
 		"start": "bun run --filter '@alertmessagecenter/server' start",
 		"lint": "bunx @biomejs/biome lint .",
 		"format": "bunx @biomejs/biome format . --write",
-		"check": "bunx @biomejs/biome check --write ."
+		"check": "bunx @biomejs/biome check --write .",
+		"prepare": "husky"
 	},
 	"devDependencies": {
-		"bun-types": "latest"
+		"@biomejs/biome": "^2.3.14",
+		"bun-types": "latest",
+		"husky": "^9.1.7",
+		"lint-staged": "^16.2.7"
+	},
+	"lint-staged": {
+		"**/*.{ts,tsx,js,jsx,json}": [
+			"bunx --bun biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
+		]
 	}
 }

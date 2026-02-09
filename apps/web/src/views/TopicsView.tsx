@@ -4,6 +4,7 @@ import {
 	Globe,
 	Lock,
 	Plus,
+	Send,
 	Settings,
 	ShieldCheck,
 	User,
@@ -14,6 +15,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import GroupBindingsModal from "../components/GroupBindingsModal";
 import Modal from "../components/Modal";
+import SendAlertForm from "../components/SendAlertForm";
 import { useAuth } from "../contexts/AuthContext";
 import { client } from "../lib/client";
 
@@ -64,6 +66,8 @@ export default function TopicsView() {
 		type: "success" | "error";
 		message: string;
 	} | null>(null);
+	const [showPersonalSend, setShowPersonalSend] = useState(false);
+	const [activeSendTopic, setActiveSendTopic] = useState<string | null>(null);
 
 	const fetchTopics = useCallback(async () => {
 		setLoading(true);
@@ -398,16 +402,39 @@ export default function TopicsView() {
 							</div>
 						</div>
 						<div className="flex items-center gap-4 bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/10">
-							<div className="bg-indigo-500/30 p-2.5 rounded-lg border border-white/20">
-								<Copy className="w-6 h-6" />
-							</div>
-							<div className="text-sm">
-								<div className="font-bold">Direct Push</div>
-								<div className="text-indigo-200 text-xs">
-									Always delivered to you
+							<div className="text-right">
+								<p className="text-xs text-indigo-300 uppercase tracking-widest font-bold mb-1">
+									Status
+								</p>
+								<div className="flex items-center text-white font-semibold">
+									<div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
+									Active
 								</div>
 							</div>
 						</div>
+					</div>
+
+					<div className="mt-6 pt-6 border-t border-white/10">
+						<button
+							type="button"
+							onClick={() => setShowPersonalSend(!showPersonalSend)}
+							className="inline-flex items-center text-sm font-bold text-white hover:text-indigo-200 transition-colors"
+						>
+							<Send className="w-4 h-4 mr-2" />
+							{showPersonalSend
+								? "Hide Send Form"
+								: "Send Quick Message to Myself"}
+						</button>
+
+						{showPersonalSend && (
+							<div className="mt-4 text-gray-900 max-w-2xl">
+								<SendAlertForm
+									webhookUrl={getDmWebhookUrl()}
+									title="Send to Personal Inbox"
+									placeholder="What would you like to notify yourself about?"
+								/>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
@@ -436,7 +463,7 @@ export default function TopicsView() {
 								<div className="flex items-center justify-between">
 									<div className="flex-1">
 										<div className="flex items-center justify-between">
-											<p className="text-sm font-medium text-indigo-600 truncate flex items-center">
+											<div className="text-sm font-medium text-indigo-600 truncate flex items-center">
 												{topic.name}
 												{topic.isGlobal ? (
 													<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-tight">
@@ -449,7 +476,7 @@ export default function TopicsView() {
 														Private
 													</span>
 												)}
-											</p>
+											</div>
 											<div className="flex items-center space-x-2">
 												<button
 													type="button"
@@ -498,8 +525,8 @@ export default function TopicsView() {
 													)}
 											</div>
 										</div>
-										<div className="mt-2 sm:flex sm:justify-between">
-											<div className="sm:flex flex-col">
+										<div className="mt-2">
+											<div className="flex flex-col w-full">
 												<p className="flex items-center text-sm text-gray-500">
 													Slug:{" "}
 													<span className="font-mono ml-1 bg-gray-100 px-1 rounded">
@@ -533,6 +560,7 @@ export default function TopicsView() {
 														</div>
 													)}
 												</div>
+
 												{currentUser && (
 													<div
 														className={`mt-3 ${topic.isGlobal ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-3"}`}
@@ -543,28 +571,50 @@ export default function TopicsView() {
 																	<span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
 																		Your Personal Webhook
 																	</span>
-																	<button
-																		type="button"
-																		onClick={() =>
-																			copyToClipboard(
-																				getWebhookUrl(topic.slug),
-																				topic.id,
-																			)
-																		}
-																		className="text-indigo-600 hover:text-indigo-800 flex items-center text-xs font-semibold bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm transition-all hover:shadow hover:translate-y-[-1px]"
-																	>
-																		{copiedId === topic.id ? (
-																			<>
-																				<Check className="w-3 h-3 mr-1" />
-																				Copied
-																			</>
-																		) : (
-																			<>
-																				<Copy className="w-3 h-3 mr-1" />
-																				Copy URL
-																			</>
-																		)}
-																	</button>
+																	<div className="flex items-center space-x-2">
+																		<button
+																			type="button"
+																			onClick={() =>
+																				copyToClipboard(
+																					getWebhookUrl(topic.slug),
+																					topic.id,
+																				)
+																			}
+																			className="text-indigo-600 hover:text-indigo-800 flex items-center text-xs font-semibold bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm transition-all hover:shadow hover:translate-y-[-1px]"
+																		>
+																			{copiedId === topic.id ? (
+																				<>
+																					<Check className="w-3 h-3 mr-1" />
+																					Copied
+																				</>
+																			) : (
+																				<>
+																					<Copy className="w-3 h-3 mr-1" />
+																					Copy URL
+																				</>
+																			)}
+																		</button>
+																		<button
+																			type="button"
+																			onClick={() =>
+																				setActiveSendTopic(
+																					activeSendTopic === topic.id
+																						? null
+																						: topic.id,
+																				)
+																			}
+																			className={`flex items-center text-xs font-semibold px-2 py-0.5 rounded border transition-all hover:shadow hover:translate-y-[-1px] ${
+																				activeSendTopic === topic.id
+																					? "bg-indigo-600 text-white border-indigo-700 shadow-inner"
+																					: "bg-white text-indigo-600 border-gray-200 shadow-sm"
+																			}`}
+																		>
+																			<Send className="w-3 h-3 mr-1" />
+																			{activeSendTopic === topic.id
+																				? "Close"
+																				: "Send Message"}
+																		</button>
+																	</div>
 																</div>
 																<div className="text-[11px] font-mono text-gray-600 break-all select-all bg-white/60 p-1.5 rounded border border-gray-100/50 leading-relaxed">
 																	{getWebhookUrl(topic.slug)}
@@ -622,6 +672,17 @@ export default function TopicsView() {
 																</p>
 															</div>
 														)}
+													</div>
+												)}
+
+												{activeSendTopic === topic.id && (
+													<div className="mt-4 animate-in fade-in slide-in-from-top-2 max-w-2xl bg-white p-4 rounded-lg border border-indigo-100 shadow-md">
+														<SendAlertForm
+															webhookUrl={getWebhookUrl(topic.slug)}
+															title={`Send Message to ${topic.name}`}
+															placeholder={`Enter alert content for ${topic.name}...`}
+															onSuccess={() => setActiveSendTopic(null)}
+														/>
 													</div>
 												)}
 											</div>
