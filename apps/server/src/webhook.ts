@@ -108,7 +108,9 @@ const getRequestBody = async (c: Context): Promise<WebhookBody> => {
 		delete body.file;
 	}
 
-	const image = Array.isArray(body.image) ? (body.image[0] as unknown) : body.image;
+	const image = Array.isArray(body.image)
+		? (body.image[0] as unknown)
+		: body.image;
 	if (image instanceof File) {
 		const buffer = Buffer.from(await image.arrayBuffer());
 		const imageKey = await feishuClient.uploadImage(buffer);
@@ -217,8 +219,9 @@ const dispatchAlert = async (
 						typeof content === "object" &&
 						"text" in content
 					) {
-						(content as Record<string, unknown>).text = `[Direct Message]\n${(content as Record<string, unknown>).text
-							}`;
+						(content as Record<string, unknown>).text = `[Direct Message]\n${
+							(content as Record<string, unknown>).text
+						}`;
 					}
 					// Add prefix for interactive
 					if (
@@ -227,10 +230,14 @@ const dispatchAlert = async (
 						typeof content === "object" &&
 						"header" in content
 					) {
-						const c = content as Record<string, Record<string, Record<string, unknown>>>;
+						const c = content as Record<
+							string,
+							Record<string, Record<string, unknown>>
+						>;
 						if (c.header?.title?.content) {
-							c.header.title.content = `[${topic.slug || topic.name}] ${c.header.title.content
-								}`;
+							c.header.title.content = `[${topic.slug || topic.name}] ${
+								c.header.title.content
+							}`;
 						}
 					}
 					messagesToSend.push({
@@ -289,8 +296,9 @@ const dispatchAlert = async (
 						typeof content === "object" &&
 						"text" in content
 					) {
-						(content as Record<string, unknown>).text = `[${topic.name}]\n${(content as Record<string, unknown>).text
-							}`;
+						(content as Record<string, unknown>).text = `[${topic.name}]\n${
+							(content as Record<string, unknown>).text
+						}`;
 					}
 					messagesToSend.push({
 						type: msgType,
