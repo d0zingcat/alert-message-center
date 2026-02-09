@@ -37,6 +37,7 @@ Real-time tracking of system alert load, dispatch success rates, and topic popul
 - **📊 Real-time Dashboard**: Grafana-style monitoring interface for system health visualization.
 - **🔌 WebSocket Mode**: Supports Feishu Open Platform WebSocket for intranet deployments without public IP or domain.
 - **📎 Attachment Support**: Send files and images directly via dashboard or API.
+- **🏗️ Git Pre-commit Hooks**: Automated linting and formatting using Husky and Biome to ensure code quality.
 - **⚡ High Performance**: Built on Bun + Hono for millisecond-level dispatch latency.
 
 ---

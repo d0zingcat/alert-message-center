@@ -10,6 +10,7 @@
 
 ### 新增
 - **文件附件支持**：用户现在可以通过控制面板和 API 发送文件和图片。
+- **Git Pre-commit 钩子**：使用 Husky 和 Biome 自动检查和格式化暂存代码。
 - **Multipart Form-Data 支持**：Webhook 端点现在支持处理用于文件上传的 `multipart/form-data`。
 - **顺序消息分发**：支持在单个请求中将文本和附件作为多个顺序消息发送。
 - **SendAlertForm 组件**：新的 UI 组件，支持直接从话题视图发送带有附件的告警。

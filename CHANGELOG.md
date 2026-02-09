@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **File Attachment Support**: Users can now send files and images via the dashboard and API.
 - **Multipart Form-Data Support**: Webhook endpoint now handles `multipart/form-data` for file uploads.
+- **Git Pre-commit Hooks**: Automated linting and formatting on staged files using Husky and Biome.
 - **Sequential Message Dispatch**: Support for sending text and attachments as multiple sequential messages in a single request.
 - **SendAlertForm Component**: New UI component for sending alerts with attachments directly from the topic view.
 
