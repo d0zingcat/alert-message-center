@@ -4,13 +4,13 @@ import {
 	Globe,
 	Lock,
 	Plus,
+	Send,
 	Settings,
 	ShieldCheck,
 	User,
 	UserMinus,
 	UserPlus,
 	Users,
-	Send,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import GroupBindingsModal from "../components/GroupBindingsModal";
@@ -228,20 +228,20 @@ export default function TopicsView() {
 						const updatedSubs = isSubscribed
 							? t.subscriptions.filter((s) => s.userId !== userId)
 							: [
-								...t.subscriptions,
-								{
-									userId,
-									user:
-										users.find((u) => u.id === userId) ||
-										(currentUser
-											? {
-												id: currentUser.id,
-												name: currentUser.name,
-												email: currentUser.email,
-											}
-											: { id: "unknown", name: "Unknown" }),
-								},
-							];
+									...t.subscriptions,
+									{
+										userId,
+										user:
+											users.find((u) => u.id === userId) ||
+											(currentUser
+												? {
+														id: currentUser.id,
+														name: currentUser.name,
+														email: currentUser.email,
+													}
+												: { id: "unknown", name: "Unknown" }),
+									},
+								];
 						return { ...t, subscriptions: updatedSubs };
 					}
 					return t;
@@ -253,20 +253,20 @@ export default function TopicsView() {
 				const updatedSubs = isSubscribed
 					? selectedTopic.subscriptions.filter((s) => s.userId !== userId)
 					: [
-						...selectedTopic.subscriptions,
-						{
-							userId,
-							user:
-								users.find((u) => u.id === userId) ||
-								(currentUser
-									? {
-										id: currentUser.id,
-										name: currentUser.name,
-										email: currentUser.email,
-									}
-									: { id: "unknown", name: "Unknown" }),
-						},
-					];
+							...selectedTopic.subscriptions,
+							{
+								userId,
+								user:
+									users.find((u) => u.id === userId) ||
+									(currentUser
+										? {
+												id: currentUser.id,
+												name: currentUser.name,
+												email: currentUser.email,
+											}
+										: { id: "unknown", name: "Unknown" }),
+							},
+						];
 				setSelectedTopic({ ...selectedTopic, subscriptions: updatedSubs });
 			}
 
@@ -421,7 +421,9 @@ export default function TopicsView() {
 							className="inline-flex items-center text-sm font-bold text-white hover:text-indigo-200 transition-colors"
 						>
 							<Send className="w-4 h-4 mr-2" />
-							{showPersonalSend ? "Hide Send Form" : "Send Quick Message to Myself"}
+							{showPersonalSend
+								? "Hide Send Form"
+								: "Send Quick Message to Myself"}
 						</button>
 
 						{showPersonalSend && (
@@ -479,10 +481,11 @@ export default function TopicsView() {
 												<button
 													type="button"
 													onClick={() => handleSelfSubscribe(topic)}
-													className={`inline-flex items-center px-3 py-1 border text-xs font-medium rounded-md ${isSubscribedToTopic(topic)
-														? "border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
-														: "border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
-														}`}
+													className={`inline-flex items-center px-3 py-1 border text-xs font-medium rounded-md ${
+														isSubscribedToTopic(topic)
+															? "border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
+															: "border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
+													}`}
 												>
 													{isSubscribedToTopic(topic) ? (
 														<>
@@ -595,13 +598,16 @@ export default function TopicsView() {
 																			type="button"
 																			onClick={() =>
 																				setActiveSendTopic(
-																					activeSendTopic === topic.id ? null : topic.id,
+																					activeSendTopic === topic.id
+																						? null
+																						: topic.id,
 																				)
 																			}
-																			className={`flex items-center text-xs font-semibold px-2 py-0.5 rounded border transition-all hover:shadow hover:translate-y-[-1px] ${activeSendTopic === topic.id
-																				? "bg-indigo-600 text-white border-indigo-700 shadow-inner"
-																				: "bg-white text-indigo-600 border-gray-200 shadow-sm"
-																				}`}
+																			className={`flex items-center text-xs font-semibold px-2 py-0.5 rounded border transition-all hover:shadow hover:translate-y-[-1px] ${
+																				activeSendTopic === topic.id
+																					? "bg-indigo-600 text-white border-indigo-700 shadow-inner"
+																					: "bg-white text-indigo-600 border-gray-200 shadow-sm"
+																			}`}
 																		>
 																			<Send className="w-3 h-3 mr-1" />
 																			{activeSendTopic === topic.id
@@ -703,72 +709,71 @@ export default function TopicsView() {
 							</div>
 						</li>
 					)}
-				</ul >
-			</div >
+				</ul>
+			</div>
 
-			{
-				myRequests.length > 0 && (
-					<div className="mt-12">
-						<h3 className="text-lg font-bold text-gray-900 mb-4">My Requests</h3>
-						<div className="bg-white shadow overflow-hidden sm:rounded-md">
-							<ul className="divide-y divide-gray-200">
-								{myRequests.map((req) => (
-									<li key={req.id}>
-										<div className="px-4 py-4 sm:px-6">
-											<div className="flex items-center justify-between">
-												<div className="flex-1">
-													<div className="flex items-center justify-between">
-														<p className="text-sm font-medium text-indigo-600 truncate">
-															{req.name}
-														</p>
-														<div className="flex items-center">
-															<span
-																className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${req.status === "approved"
+			{myRequests.length > 0 && (
+				<div className="mt-12">
+					<h3 className="text-lg font-bold text-gray-900 mb-4">My Requests</h3>
+					<div className="bg-white shadow overflow-hidden sm:rounded-md">
+						<ul className="divide-y divide-gray-200">
+							{myRequests.map((req) => (
+								<li key={req.id}>
+									<div className="px-4 py-4 sm:px-6">
+										<div className="flex items-center justify-between">
+											<div className="flex-1">
+												<div className="flex items-center justify-between">
+													<p className="text-sm font-medium text-indigo-600 truncate">
+														{req.name}
+													</p>
+													<div className="flex items-center">
+														<span
+															className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+																req.status === "approved"
 																	? "bg-green-100 text-green-800"
 																	: req.status === "rejected"
 																		? "bg-red-100 text-red-800"
 																		: "bg-yellow-100 text-yellow-800"
-																	}`}
-															>
-																{req.status === "approved"
-																	? "Approved"
-																	: req.status === "rejected"
-																		? "Rejected"
-																		: "Pending"}
+															}`}
+														>
+															{req.status === "approved"
+																? "Approved"
+																: req.status === "rejected"
+																	? "Rejected"
+																	: "Pending"}
+														</span>
+													</div>
+												</div>
+												<div className="mt-2 text-sm text-gray-500">
+													<p>
+														Slug: <span className="font-mono">{req.slug}</span>
+													</p>
+													{req.description && (
+														<p className="mt-1">{req.description}</p>
+													)}
+													<p className="mt-1 text-xs text-gray-400">
+														Requested on:{" "}
+														{req.createdAt
+															? new Date(req.createdAt).toLocaleDateString()
+															: "Unknown"}
+														{req.approver && (
+															<span className="ml-2">
+																| Approved by: {req.approver.name}
 															</span>
-														</div>
-													</div>
-													<div className="mt-2 text-sm text-gray-500">
-														<p>
-															Slug: <span className="font-mono">{req.slug}</span>
-														</p>
-														{req.description && (
-															<p className="mt-1">{req.description}</p>
 														)}
-														<p className="mt-1 text-xs text-gray-400">
-															Requested on:{" "}
-															{req.createdAt
-																? new Date(req.createdAt).toLocaleDateString()
-																: "Unknown"}
-															{req.approver && (
-																<span className="ml-2">
-																	| Approved by: {req.approver.name}
-																</span>
-															)}
-														</p>
-													</div>
+													</p>
 												</div>
 											</div>
 										</div>
-									</li>
-								))}
-							</ul>
-						</div>
+									</div>
+								</li>
+							))}
+						</ul>
 					</div>
-				)
-			}
+				</div>
+			)}
 
-			< Modal
+			<Modal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
 				title={currentUser?.isAdmin ? "Add New Topic" : "Request New Topic"}
@@ -850,10 +855,11 @@ export default function TopicsView() {
 					</div>
 					{submitStatus && (
 						<div
-							className={`p-3 rounded-md text-sm ${submitStatus.type === "success"
-								? "bg-green-50 text-green-800"
-								: "bg-red-50 text-red-800"
-								}`}
+							className={`p-3 rounded-md text-sm ${
+								submitStatus.type === "success"
+									? "bg-green-50 text-green-800"
+									: "bg-red-50 text-red-800"
+							}`}
 						>
 							{submitStatus.message}
 						</div>
@@ -874,7 +880,7 @@ export default function TopicsView() {
 						</button>
 					</div>
 				</form>
-			</Modal >
+			</Modal>
 
 			<Modal
 				isOpen={isSubModalOpen}
@@ -934,16 +940,14 @@ export default function TopicsView() {
 				</div>
 			</Modal>
 
-			{
-				selectedTopic && (
-					<GroupBindingsModal
-						isOpen={isGroupModalOpen}
-						onClose={() => setIsGroupModalOpen(false)}
-						topicId={selectedTopic.id}
-						topicName={selectedTopic.name}
-					/>
-				)
-			}
-		</div >
+			{selectedTopic && (
+				<GroupBindingsModal
+					isOpen={isGroupModalOpen}
+					onClose={() => setIsGroupModalOpen(false)}
+					topicId={selectedTopic.id}
+					topicName={selectedTopic.name}
+				/>
+			)}
+		</div>
 	);
 }

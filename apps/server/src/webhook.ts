@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { db } from "./db";
 import { alertLogs, alertTasks, topics, users } from "./db/schema";
 import { feishuClient } from "./feishu";
@@ -15,11 +15,43 @@ interface Recipient {
 	idType: FeishuReceiveIdType;
 }
 
+interface Topic {
+	slug: string;
+	name: string;
+	isGlobal: boolean;
+	subscriptions?: { user: User }[];
+	groupChats?: { id: string; name: string; chatId: string; status: string }[];
+}
+
+interface User {
+	id: string;
+	name: string;
+	feishuUserId: string;
+}
+
+interface WebhookBody {
+	msg_type?: string;
+	content?: any;
+	card?: any;
+	post?: any;
+	image_key?: string;
+	file_key?: string;
+	audio_key?: string;
+	sticker_key?: string;
+	chat_id?: string;
+	user_id?: string;
+	uuid?: string;
+	token?: string;
+	file_type?: string;
+	file_name?: string;
+	[key: string]: any;
+}
+
 const webhook = new Hono();
 
-const getRequestBody = async (c: any) => {
+const getRequestBody = async (c: Context): Promise<WebhookBody> => {
 	const contentType = c.req.header("Content-Type") || "";
-	let body: Record<string, any>;
+	let body: WebhookBody;
 
 	if (contentType.includes("application/json")) {
 		try {
@@ -57,10 +89,18 @@ const getRequestBody = async (c: any) => {
 	}
 
 	// Proxy upload if files are present
-	const file = Array.isArray(body.file) ? body.file[0] : body.file;
+	const file = Array.isArray(body.file) ? (body.file[0] as unknown) : body.file;
 	if (file instanceof File) {
 		const buffer = Buffer.from(await file.arrayBuffer());
-		const fileType = (body.file_type as any) || "stream";
+		const fileType =
+			(body.file_type as
+				| "opus"
+				| "mp4"
+				| "pdf"
+				| "doc"
+				| "xls"
+				| "ppt"
+				| "stream") || "stream";
 		const fileName = (body.file_name as string) || file.name;
 		const fileKey = await feishuClient.uploadFile(fileType, fileName, buffer);
 		body.file_key = fileKey;
@@ -79,15 +119,15 @@ const getRequestBody = async (c: any) => {
 };
 
 const dispatchAlert = async (
-	c: any,
-	topic: any,
-	body: any,
-	user: any | null,
+	c: Context,
+	topic: Topic,
+	body: WebhookBody,
+	user: User | null,
 ) => {
 	// 2. Collect recipients
-	const userRecipients: Recipient[] = (topic.subscriptions || [])
-		.map((sub: any) => sub.user)
-		.map((u: any) => {
+	const userRecipients: (Recipient | null)[] = (topic.subscriptions || [])
+		.map((sub) => sub.user)
+		.map((u) => {
 			if (!u || !u.feishuUserId) return null;
 			return {
 				type: "user" as const,
@@ -98,12 +138,15 @@ const dispatchAlert = async (
 					? "open_id"
 					: "user_id") as FeishuReceiveIdType,
 			};
-		})
-		.filter((u: any): u is Recipient => u !== null);
+		});
+
+	const validUserRecipients: Recipient[] = userRecipients.filter(
+		(u): u is Recipient => u !== null,
+	);
 
 	const groupRecipients: Recipient[] = (topic.groupChats || [])
-		.filter((g: any) => g.status === "approved")
-		.map((g: any) => ({
+		.filter((g) => g.status === "approved")
+		.map((g) => ({
 			type: "group",
 			id: g.id, // Binding ID
 			name: g.name,
@@ -111,7 +154,7 @@ const dispatchAlert = async (
 			idType: "chat_id" as FeishuReceiveIdType,
 		}));
 
-	const allRecipients: Recipient[] = [...userRecipients, ...groupRecipients];
+	const allRecipients: Recipient[] = [...validUserRecipients, ...groupRecipients];
 
 	const [task] = await db
 		.insert(alertTasks)
@@ -121,7 +164,7 @@ const dispatchAlert = async (
 			status: "processing",
 			recipientCount: allRecipients.length,
 			successCount: 0,
-			payload: body,
+			payload: body as Record<string, unknown>, // Cast to satisfy Drizzle jsonb type
 		})
 		.returning();
 
@@ -152,7 +195,10 @@ const dispatchAlert = async (
 		allRecipients.map(async (recipient) => {
 			try {
 				// Construct messages list
-				const messagesToSend: { type: string; content: any }[] = [];
+				const messagesToSend: {
+					type: string;
+					content: Record<string, unknown> | string;
+				}[] = [];
 
 				// 1. Text content
 				if (body.content) {
@@ -288,6 +334,7 @@ const dispatchAlert = async (
 			const recipient = allRecipients[index];
 			if (r.status === "fulfilled") {
 				const val = r.value as {
+					recipientId: string;
 					status: "sent" | "failed";
 					error: string | null;
 				};
@@ -298,14 +345,13 @@ const dispatchAlert = async (
 					status: val.status as "sent" | "failed",
 					error: val.error,
 				};
-			} else {
-				return {
-					taskId: task.id,
-					userId: recipient.type === "user" ? recipient.id : null,
-					status: "failed" as const,
-					error: r.status === "rejected" ? String(r.reason) : "Unknown error",
-				};
 			}
+			return {
+				taskId: task.id,
+				userId: recipient.type === "user" ? recipient.id : null,
+				status: "failed" as const,
+				error: r.status === "rejected" ? String(r.reason) : "Unknown error",
+			};
 		});
 
 		if (logs.length > 0) {
@@ -395,12 +441,12 @@ webhook.post("/:token/topic/:slug", async (c) => {
 		return c.json({ error: "Topic not found" }, 404);
 	}
 
-	let user: any = null;
+	let user: User | null = null;
 	if (!topic.isGlobal) {
 		// 0. Find the User by Token
-		user = await db.query.users.findFirst({
+		user = (await db.query.users.findFirst({
 			where: eq(users.personalToken, token),
-		});
+		})) || null;
 
 		if (!user) {
 			logger.warn({ token }, "[Webhook] Invalid personal token");
@@ -474,7 +520,10 @@ webhook.post("/:token/dm", async (c) => {
 	// 2. Send Message
 	(async () => {
 		try {
-			const messagesToSend: { type: string; content: any }[] = [];
+			const messagesToSend: {
+				type: string;
+				content: Record<string, unknown> | string;
+			}[] = [];
 
 			// Text content
 			if (body.content) {

@@ -1,7 +1,7 @@
-import * as lark from "@larksuiteoapi/node-sdk";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import * as lark from "@larksuiteoapi/node-sdk";
 import { logger } from "./lib/logger";
 
 export interface UserAccessTokenData {
@@ -72,7 +72,10 @@ export class FeishuClient {
 		fileName: string,
 		fileBuffer: Buffer,
 	): Promise<string> {
-		const tempPath = path.join(os.tmpdir(), `feishu_upload_${Date.now()}_${fileName}`);
+		const tempPath = path.join(
+			os.tmpdir(),
+			`feishu_upload_${Date.now()}_${fileName}`,
+		);
 		try {
 			fs.writeFileSync(tempPath, fileBuffer);
 			const response = await this.client.im.file.create({
@@ -85,7 +88,9 @@ export class FeishuClient {
 
 			if (!response || !response.file_key) {
 				logger.error({ response }, "Feishu upload file error: no file_key");
-				throw new Error("Failed to upload file to Feishu: no file_key returned");
+				throw new Error(
+					"Failed to upload file to Feishu: no file_key returned",
+				);
 			}
 
 			return response.file_key;
@@ -115,7 +120,9 @@ export class FeishuClient {
 
 			if (!response || !response.image_key) {
 				logger.error({ response }, "Feishu upload image error: no image_key");
-				throw new Error("Failed to upload image to Feishu: no image_key returned");
+				throw new Error(
+					"Failed to upload image to Feishu: no image_key returned",
+				);
 			}
 
 			return response.image_key;
