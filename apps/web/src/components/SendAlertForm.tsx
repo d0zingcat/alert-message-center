@@ -175,10 +175,11 @@ export default function SendAlertForm({
 
 				{status && (
 					<div
-						className={`mt-4 p-3 rounded-lg flex items-start animate-in fade-in zoom-in-95 ${status.type === "success"
-							? "bg-green-50 text-green-700 border border-green-100"
-							: "bg-red-50 text-red-700 border border-red-100"
-							}`}
+						className={`mt-4 p-3 rounded-lg flex items-start animate-in fade-in zoom-in-95 ${
+							status.type === "success"
+								? "bg-green-50 text-green-700 border border-green-100"
+								: "bg-red-50 text-red-700 border border-red-100"
+						}`}
 					>
 						{status.type === "success" ? (
 							<CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />

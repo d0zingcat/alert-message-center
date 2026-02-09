@@ -31,9 +31,9 @@ interface User {
 
 interface WebhookBody {
 	msg_type?: string;
-	content?: any;
-	card?: any;
-	post?: any;
+	content?: unknown;
+	card?: unknown;
+	post?: unknown;
 	image_key?: string;
 	file_key?: string;
 	audio_key?: string;
@@ -44,7 +44,7 @@ interface WebhookBody {
 	token?: string;
 	file_type?: string;
 	file_name?: string;
-	[key: string]: any;
+	[key: string]: unknown;
 }
 
 const webhook = new Hono();
@@ -63,13 +63,14 @@ const getRequestBody = async (c: Context): Promise<WebhookBody> => {
 		contentType.includes("multipart/form-data") ||
 		contentType.includes("application/x-www-form-urlencoded")
 	) {
-		body = await c.req.parseBody();
+		body = (await c.req.parseBody()) as unknown as WebhookBody;
 		// Handle stringified JSON fields in multipart
-		const complexFields = ["content", "card", "post"];
+		const complexFields: (keyof WebhookBody)[] = ["content", "card", "post"];
 		for (const field of complexFields) {
-			if (typeof body[field] === "string") {
+			const val = body[field];
+			if (typeof val === "string") {
 				try {
-					body[field] = JSON.parse(body[field]);
+					body[field] = JSON.parse(val);
 				} catch {
 					// Not JSON, leave as is
 				}
@@ -107,7 +108,7 @@ const getRequestBody = async (c: Context): Promise<WebhookBody> => {
 		delete body.file;
 	}
 
-	const image = Array.isArray(body.image) ? body.image[0] : body.image;
+	const image = Array.isArray(body.image) ? (body.image[0] as unknown) : body.image;
 	if (image instanceof File) {
 		const buffer = Buffer.from(await image.arrayBuffer());
 		const imageKey = await feishuClient.uploadImage(buffer);
@@ -154,7 +155,10 @@ const dispatchAlert = async (
 			idType: "chat_id" as FeishuReceiveIdType,
 		}));
 
-	const allRecipients: Recipient[] = [...validUserRecipients, ...groupRecipients];
+	const allRecipients: Recipient[] = [
+		...validUserRecipients,
+		...groupRecipients,
+	];
 
 	const [task] = await db
 		.insert(alertTasks)
@@ -164,7 +168,8 @@ const dispatchAlert = async (
 			status: "processing",
 			recipientCount: allRecipients.length,
 			successCount: 0,
-			payload: body as Record<string, unknown>, // Cast to satisfy Drizzle jsonb type
+			// biome-ignore lint/suspicious/noExplicitAny: Drizzle expects specific jsonb type
+			payload: body as any,
 		})
 		.returning();
 
@@ -184,7 +189,8 @@ const dispatchAlert = async (
 	logger.info(
 		{
 			taskId: task.id,
-			userCount: userRecipients.length,
+			slug: topic.slug,
+			userCount: validUserRecipients.length,
 			groupCount: groupRecipients.length,
 		},
 		"[Webhook] Dispatching alerts",
@@ -205,14 +211,32 @@ const dispatchAlert = async (
 					const content = JSON.parse(JSON.stringify(body.content));
 					const msgType = body.msg_type || "text";
 					// Add prefix for text
-					if (msgType === "text" && content.text) {
-						content.text = `[${topic.name}]\n${content.text}`;
+					if (
+						msgType === "text" &&
+						content &&
+						typeof content === "object" &&
+						"text" in content
+					) {
+						(content as Record<string, unknown>).text = `[Direct Message]\n${(content as Record<string, unknown>).text
+							}`;
 					}
 					// Add prefix for interactive
-					if (msgType === "interactive" && content.header) {
-						content.header.title.content = `[${topic.name}] ${content.header.title.content}`;
+					if (
+						msgType === "interactive" &&
+						content &&
+						typeof content === "object" &&
+						"header" in content
+					) {
+						const c = content as Record<string, Record<string, Record<string, unknown>>>;
+						if (c.header?.title?.content) {
+							c.header.title.content = `[${topic.slug || topic.name}] ${c.header.title.content
+								}`;
+						}
 					}
-					messagesToSend.push({ type: msgType, content });
+					messagesToSend.push({
+						type: msgType,
+						content: content as Record<string, unknown> | string,
+					});
 				}
 
 				// 2. Image
@@ -234,7 +258,7 @@ const dispatchAlert = async (
 				// 4. Fallback for no explicit content/attachment keys
 				if (messagesToSend.length === 0) {
 					let msgType = body.msg_type || "text";
-					let content = body.content;
+					let content: unknown = body.content;
 
 					if (body.card) {
 						content = body.card;
@@ -259,10 +283,19 @@ const dispatchAlert = async (
 						}
 					}
 					// Add prefix for inferred types
-					if (msgType === "text" && content.text) {
-						content.text = `[${topic.name}]\n${content.text}`;
+					if (
+						msgType === "text" &&
+						content &&
+						typeof content === "object" &&
+						"text" in content
+					) {
+						(content as Record<string, unknown>).text = `[${topic.name}]\n${(content as Record<string, unknown>).text
+							}`;
 					}
-					messagesToSend.push({ type: msgType, content });
+					messagesToSend.push({
+						type: msgType,
+						content: content as Record<string, unknown> | string,
+					});
 				}
 
 				let successCount = 0;
@@ -444,9 +477,10 @@ webhook.post("/:token/topic/:slug", async (c) => {
 	let user: User | null = null;
 	if (!topic.isGlobal) {
 		// 0. Find the User by Token
-		user = (await db.query.users.findFirst({
-			where: eq(users.personalToken, token),
-		})) || null;
+		user =
+			(await db.query.users.findFirst({
+				where: eq(users.personalToken, token),
+			})) || null;
 
 		if (!user) {
 			logger.warn({ token }, "[Webhook] Invalid personal token");
