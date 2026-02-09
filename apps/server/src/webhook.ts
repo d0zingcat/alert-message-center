@@ -194,7 +194,7 @@ const dispatchAlert = async (
 						content = body.card;
 						if (!msgType) msgType = "interactive";
 					} else {
-						const { msg_type, token, ...rest } = body;
+						const { msg_type: _msg_type, token: _token, ...rest } = body;
 						content = rest;
 						if (!msgType) {
 							if (body.post) msgType = "post";
@@ -529,7 +529,7 @@ webhook.post("/:token/dm", async (c) => {
 					msgType = "share_user";
 					content = { user_id: body.user_id };
 				} else {
-					const { msg_type, token, ...rest } = body;
+					const { msg_type: _msg_type, token: _token, ...rest } = body;
 					content = rest;
 					if (!msgType || msgType === "text") {
 						msgType = "text";
