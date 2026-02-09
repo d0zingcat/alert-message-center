@@ -36,6 +36,7 @@ Real-time tracking of system alert load, dispatch success rates, and topic popul
     - Full `Alert Task` logs for end-to-end traceability.
 - **📊 Real-time Dashboard**: Grafana-style monitoring interface for system health visualization.
 - **🔌 WebSocket Mode**: Supports Feishu Open Platform WebSocket for intranet deployments without public IP or domain.
+- **📎 Attachment Support**: Send files and images directly via dashboard or API.
 - **⚡ High Performance**: Built on Bun + Hono for millisecond-level dispatch latency.
 
 ---
@@ -91,8 +92,37 @@ Automatically builds and pushes Docker images to GitHub Container Registry (GHCR
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## 📡 Webhook Usage
-- **Personal Inbox**: `POST /api/webhook/:your_token/dm`
-- **Topic**: `POST /api/webhook/:your_token/topic/:topic_slug`
+
+### 1. Send to Personal Inbox (DM)
+- **URL**: `POST /api/webhook/:your_token/dm`
+- **Format**: JSON or Multipart Form-Data
+
+### 2. Send to Topic
+- **URL**: `POST /api/webhook/:your_token/topic/:topic_slug`
+
+### Examples (using curl)
+
+**Send Text (JSON):**
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"content":{"text":"Hello World"}}' \
+  http://localhost:3000/api/webhook/YOUR_TOKEN/dm
+```
+
+**Send File (Multipart):**
+```bash
+curl -X POST \
+  -F "content={\"text\":\"Check this file\"}" \
+  -F "file=@/path/to/report.pdf" \
+  http://localhost:3000/api/webhook/YOUR_TOKEN/dm
+```
+
+**Send Image:**
+```bash
+curl -X POST \
+  -F "image=@/path/to/screenshot.png" \
+  http://localhost:3000/api/webhook/YOUR_TOKEN/dm
+```
 
 ## 📂 Project Structure
 - `apps/server`: Core API service

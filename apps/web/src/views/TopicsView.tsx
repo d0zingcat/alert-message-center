@@ -10,10 +10,12 @@ import {
 	UserMinus,
 	UserPlus,
 	Users,
+	Send,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import GroupBindingsModal from "../components/GroupBindingsModal";
 import Modal from "../components/Modal";
+import SendAlertForm from "../components/SendAlertForm";
 import { useAuth } from "../contexts/AuthContext";
 import { client } from "../lib/client";
 
@@ -64,6 +66,8 @@ export default function TopicsView() {
 		type: "success" | "error";
 		message: string;
 	} | null>(null);
+	const [showPersonalSend, setShowPersonalSend] = useState(false);
+	const [activeSendTopic, setActiveSendTopic] = useState<string | null>(null);
 
 	const fetchTopics = useCallback(async () => {
 		setLoading(true);
@@ -224,20 +228,20 @@ export default function TopicsView() {
 						const updatedSubs = isSubscribed
 							? t.subscriptions.filter((s) => s.userId !== userId)
 							: [
-									...t.subscriptions,
-									{
-										userId,
-										user:
-											users.find((u) => u.id === userId) ||
-											(currentUser
-												? {
-														id: currentUser.id,
-														name: currentUser.name,
-														email: currentUser.email,
-													}
-												: { id: "unknown", name: "Unknown" }),
-									},
-								];
+								...t.subscriptions,
+								{
+									userId,
+									user:
+										users.find((u) => u.id === userId) ||
+										(currentUser
+											? {
+												id: currentUser.id,
+												name: currentUser.name,
+												email: currentUser.email,
+											}
+											: { id: "unknown", name: "Unknown" }),
+								},
+							];
 						return { ...t, subscriptions: updatedSubs };
 					}
 					return t;
@@ -249,20 +253,20 @@ export default function TopicsView() {
 				const updatedSubs = isSubscribed
 					? selectedTopic.subscriptions.filter((s) => s.userId !== userId)
 					: [
-							...selectedTopic.subscriptions,
-							{
-								userId,
-								user:
-									users.find((u) => u.id === userId) ||
-									(currentUser
-										? {
-												id: currentUser.id,
-												name: currentUser.name,
-												email: currentUser.email,
-											}
-										: { id: "unknown", name: "Unknown" }),
-							},
-						];
+						...selectedTopic.subscriptions,
+						{
+							userId,
+							user:
+								users.find((u) => u.id === userId) ||
+								(currentUser
+									? {
+										id: currentUser.id,
+										name: currentUser.name,
+										email: currentUser.email,
+									}
+									: { id: "unknown", name: "Unknown" }),
+						},
+					];
 				setSelectedTopic({ ...selectedTopic, subscriptions: updatedSubs });
 			}
 
@@ -398,16 +402,37 @@ export default function TopicsView() {
 							</div>
 						</div>
 						<div className="flex items-center gap-4 bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/10">
-							<div className="bg-indigo-500/30 p-2.5 rounded-lg border border-white/20">
-								<Copy className="w-6 h-6" />
-							</div>
-							<div className="text-sm">
-								<div className="font-bold">Direct Push</div>
-								<div className="text-indigo-200 text-xs">
-									Always delivered to you
+							<div className="text-right">
+								<p className="text-xs text-indigo-300 uppercase tracking-widest font-bold mb-1">
+									Status
+								</p>
+								<div className="flex items-center text-white font-semibold">
+									<div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
+									Active
 								</div>
 							</div>
 						</div>
+					</div>
+
+					<div className="mt-6 pt-6 border-t border-white/10">
+						<button
+							type="button"
+							onClick={() => setShowPersonalSend(!showPersonalSend)}
+							className="inline-flex items-center text-sm font-bold text-white hover:text-indigo-200 transition-colors"
+						>
+							<Send className="w-4 h-4 mr-2" />
+							{showPersonalSend ? "Hide Send Form" : "Send Quick Message to Myself"}
+						</button>
+
+						{showPersonalSend && (
+							<div className="mt-4 text-gray-900 max-w-2xl">
+								<SendAlertForm
+									webhookUrl={getDmWebhookUrl()}
+									title="Send to Personal Inbox"
+									placeholder="What would you like to notify yourself about?"
+								/>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
@@ -436,7 +461,7 @@ export default function TopicsView() {
 								<div className="flex items-center justify-between">
 									<div className="flex-1">
 										<div className="flex items-center justify-between">
-											<p className="text-sm font-medium text-indigo-600 truncate flex items-center">
+											<div className="text-sm font-medium text-indigo-600 truncate flex items-center">
 												{topic.name}
 												{topic.isGlobal ? (
 													<span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 uppercase tracking-tight">
@@ -449,16 +474,15 @@ export default function TopicsView() {
 														Private
 													</span>
 												)}
-											</p>
+											</div>
 											<div className="flex items-center space-x-2">
 												<button
 													type="button"
 													onClick={() => handleSelfSubscribe(topic)}
-													className={`inline-flex items-center px-3 py-1 border text-xs font-medium rounded-md ${
-														isSubscribedToTopic(topic)
-															? "border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
-															: "border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
-													}`}
+													className={`inline-flex items-center px-3 py-1 border text-xs font-medium rounded-md ${isSubscribedToTopic(topic)
+														? "border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
+														: "border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
+														}`}
 												>
 													{isSubscribedToTopic(topic) ? (
 														<>
@@ -498,8 +522,8 @@ export default function TopicsView() {
 													)}
 											</div>
 										</div>
-										<div className="mt-2 sm:flex sm:justify-between">
-											<div className="sm:flex flex-col">
+										<div className="mt-2">
+											<div className="flex flex-col w-full">
 												<p className="flex items-center text-sm text-gray-500">
 													Slug:{" "}
 													<span className="font-mono ml-1 bg-gray-100 px-1 rounded">
@@ -533,6 +557,7 @@ export default function TopicsView() {
 														</div>
 													)}
 												</div>
+
 												{currentUser && (
 													<div
 														className={`mt-3 ${topic.isGlobal ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-3"}`}
@@ -543,28 +568,47 @@ export default function TopicsView() {
 																	<span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
 																		Your Personal Webhook
 																	</span>
-																	<button
-																		type="button"
-																		onClick={() =>
-																			copyToClipboard(
-																				getWebhookUrl(topic.slug),
-																				topic.id,
-																			)
-																		}
-																		className="text-indigo-600 hover:text-indigo-800 flex items-center text-xs font-semibold bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm transition-all hover:shadow hover:translate-y-[-1px]"
-																	>
-																		{copiedId === topic.id ? (
-																			<>
-																				<Check className="w-3 h-3 mr-1" />
-																				Copied
-																			</>
-																		) : (
-																			<>
-																				<Copy className="w-3 h-3 mr-1" />
-																				Copy URL
-																			</>
-																		)}
-																	</button>
+																	<div className="flex items-center space-x-2">
+																		<button
+																			type="button"
+																			onClick={() =>
+																				copyToClipboard(
+																					getWebhookUrl(topic.slug),
+																					topic.id,
+																				)
+																			}
+																			className="text-indigo-600 hover:text-indigo-800 flex items-center text-xs font-semibold bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm transition-all hover:shadow hover:translate-y-[-1px]"
+																		>
+																			{copiedId === topic.id ? (
+																				<>
+																					<Check className="w-3 h-3 mr-1" />
+																					Copied
+																				</>
+																			) : (
+																				<>
+																					<Copy className="w-3 h-3 mr-1" />
+																					Copy URL
+																				</>
+																			)}
+																		</button>
+																		<button
+																			type="button"
+																			onClick={() =>
+																				setActiveSendTopic(
+																					activeSendTopic === topic.id ? null : topic.id,
+																				)
+																			}
+																			className={`flex items-center text-xs font-semibold px-2 py-0.5 rounded border transition-all hover:shadow hover:translate-y-[-1px] ${activeSendTopic === topic.id
+																				? "bg-indigo-600 text-white border-indigo-700 shadow-inner"
+																				: "bg-white text-indigo-600 border-gray-200 shadow-sm"
+																				}`}
+																		>
+																			<Send className="w-3 h-3 mr-1" />
+																			{activeSendTopic === topic.id
+																				? "Close"
+																				: "Send Message"}
+																		</button>
+																	</div>
 																</div>
 																<div className="text-[11px] font-mono text-gray-600 break-all select-all bg-white/60 p-1.5 rounded border border-gray-100/50 leading-relaxed">
 																	{getWebhookUrl(topic.slug)}
@@ -624,6 +668,17 @@ export default function TopicsView() {
 														)}
 													</div>
 												)}
+
+												{activeSendTopic === topic.id && (
+													<div className="mt-4 animate-in fade-in slide-in-from-top-2 max-w-2xl bg-white p-4 rounded-lg border border-indigo-100 shadow-md">
+														<SendAlertForm
+															webhookUrl={getWebhookUrl(topic.slug)}
+															title={`Send Message to ${topic.name}`}
+															placeholder={`Enter alert content for ${topic.name}...`}
+															onSuccess={() => setActiveSendTopic(null)}
+														/>
+													</div>
+												)}
 											</div>
 										</div>
 									</div>
@@ -648,71 +703,72 @@ export default function TopicsView() {
 							</div>
 						</li>
 					)}
-				</ul>
-			</div>
+				</ul >
+			</div >
 
-			{myRequests.length > 0 && (
-				<div className="mt-12">
-					<h3 className="text-lg font-bold text-gray-900 mb-4">My Requests</h3>
-					<div className="bg-white shadow overflow-hidden sm:rounded-md">
-						<ul className="divide-y divide-gray-200">
-							{myRequests.map((req) => (
-								<li key={req.id}>
-									<div className="px-4 py-4 sm:px-6">
-										<div className="flex items-center justify-between">
-											<div className="flex-1">
-												<div className="flex items-center justify-between">
-													<p className="text-sm font-medium text-indigo-600 truncate">
-														{req.name}
-													</p>
-													<div className="flex items-center">
-														<span
-															className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-																req.status === "approved"
+			{
+				myRequests.length > 0 && (
+					<div className="mt-12">
+						<h3 className="text-lg font-bold text-gray-900 mb-4">My Requests</h3>
+						<div className="bg-white shadow overflow-hidden sm:rounded-md">
+							<ul className="divide-y divide-gray-200">
+								{myRequests.map((req) => (
+									<li key={req.id}>
+										<div className="px-4 py-4 sm:px-6">
+											<div className="flex items-center justify-between">
+												<div className="flex-1">
+													<div className="flex items-center justify-between">
+														<p className="text-sm font-medium text-indigo-600 truncate">
+															{req.name}
+														</p>
+														<div className="flex items-center">
+															<span
+																className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${req.status === "approved"
 																	? "bg-green-100 text-green-800"
 																	: req.status === "rejected"
 																		? "bg-red-100 text-red-800"
 																		: "bg-yellow-100 text-yellow-800"
-															}`}
-														>
-															{req.status === "approved"
-																? "Approved"
-																: req.status === "rejected"
-																	? "Rejected"
-																	: "Pending"}
-														</span>
-													</div>
-												</div>
-												<div className="mt-2 text-sm text-gray-500">
-													<p>
-														Slug: <span className="font-mono">{req.slug}</span>
-													</p>
-													{req.description && (
-														<p className="mt-1">{req.description}</p>
-													)}
-													<p className="mt-1 text-xs text-gray-400">
-														Requested on:{" "}
-														{req.createdAt
-															? new Date(req.createdAt).toLocaleDateString()
-															: "Unknown"}
-														{req.approver && (
-															<span className="ml-2">
-																| Approved by: {req.approver.name}
+																	}`}
+															>
+																{req.status === "approved"
+																	? "Approved"
+																	: req.status === "rejected"
+																		? "Rejected"
+																		: "Pending"}
 															</span>
+														</div>
+													</div>
+													<div className="mt-2 text-sm text-gray-500">
+														<p>
+															Slug: <span className="font-mono">{req.slug}</span>
+														</p>
+														{req.description && (
+															<p className="mt-1">{req.description}</p>
 														)}
-													</p>
+														<p className="mt-1 text-xs text-gray-400">
+															Requested on:{" "}
+															{req.createdAt
+																? new Date(req.createdAt).toLocaleDateString()
+																: "Unknown"}
+															{req.approver && (
+																<span className="ml-2">
+																	| Approved by: {req.approver.name}
+																</span>
+															)}
+														</p>
+													</div>
 												</div>
 											</div>
 										</div>
-									</div>
-								</li>
-							))}
-						</ul>
+									</li>
+								))}
+							</ul>
+						</div>
 					</div>
-				</div>
-			)}
+				)
+			}
 
-			<Modal
+			< Modal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
 				title={currentUser?.isAdmin ? "Add New Topic" : "Request New Topic"}
@@ -794,11 +850,10 @@ export default function TopicsView() {
 					</div>
 					{submitStatus && (
 						<div
-							className={`p-3 rounded-md text-sm ${
-								submitStatus.type === "success"
-									? "bg-green-50 text-green-800"
-									: "bg-red-50 text-red-800"
-							}`}
+							className={`p-3 rounded-md text-sm ${submitStatus.type === "success"
+								? "bg-green-50 text-green-800"
+								: "bg-red-50 text-red-800"
+								}`}
 						>
 							{submitStatus.message}
 						</div>
@@ -819,7 +874,7 @@ export default function TopicsView() {
 						</button>
 					</div>
 				</form>
-			</Modal>
+			</Modal >
 
 			<Modal
 				isOpen={isSubModalOpen}
@@ -879,14 +934,16 @@ export default function TopicsView() {
 				</div>
 			</Modal>
 
-			{selectedTopic && (
-				<GroupBindingsModal
-					isOpen={isGroupModalOpen}
-					onClose={() => setIsGroupModalOpen(false)}
-					topicId={selectedTopic.id}
-					topicName={selectedTopic.name}
-				/>
-			)}
-		</div>
+			{
+				selectedTopic && (
+					<GroupBindingsModal
+						isOpen={isGroupModalOpen}
+						onClose={() => setIsGroupModalOpen(false)}
+						topicId={selectedTopic.id}
+						topicName={selectedTopic.name}
+					/>
+				)
+			}
+		</div >
 	);
 }

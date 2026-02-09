@@ -1,4 +1,7 @@
 import * as lark from "@larksuiteoapi/node-sdk";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { logger } from "./lib/logger";
 
 export interface UserAccessTokenData {
@@ -61,6 +64,70 @@ export class FeishuClient {
 		} catch (e) {
 			console.error("Feishu SDK error:", e);
 			throw e;
+		}
+	}
+
+	async uploadFile(
+		fileType: "opus" | "mp4" | "pdf" | "doc" | "xls" | "ppt" | "stream",
+		fileName: string,
+		fileBuffer: Buffer,
+	): Promise<string> {
+		const tempPath = path.join(os.tmpdir(), `feishu_upload_${Date.now()}_${fileName}`);
+		try {
+			fs.writeFileSync(tempPath, fileBuffer);
+			const response = await this.client.im.file.create({
+				data: {
+					file_type: fileType,
+					file_name: fileName,
+					file: fs.createReadStream(tempPath),
+				},
+			});
+
+			if (!response || !response.file_key) {
+				logger.error({ response }, "Feishu upload file error: no file_key");
+				throw new Error("Failed to upload file to Feishu: no file_key returned");
+			}
+
+			return response.file_key;
+		} catch (e) {
+			console.error("Feishu upload file SDK error:", e);
+			throw e;
+		} finally {
+			// Clean up after a short delay to ensure stream is processed
+			setTimeout(() => {
+				if (fs.existsSync(tempPath)) {
+					fs.unlinkSync(tempPath);
+				}
+			}, 10000);
+		}
+	}
+
+	async uploadImage(imageBuffer: Buffer): Promise<string> {
+		const tempPath = path.join(os.tmpdir(), `feishu_upload_img_${Date.now()}`);
+		try {
+			fs.writeFileSync(tempPath, imageBuffer);
+			const response = await this.client.im.image.create({
+				data: {
+					image_type: "message",
+					image: fs.createReadStream(tempPath),
+				},
+			});
+
+			if (!response || !response.image_key) {
+				logger.error({ response }, "Feishu upload image error: no image_key");
+				throw new Error("Failed to upload image to Feishu: no image_key returned");
+			}
+
+			return response.image_key;
+		} catch (e) {
+			console.error("Feishu upload image SDK error:", e);
+			throw e;
+		} finally {
+			setTimeout(() => {
+				if (fs.existsSync(tempPath)) {
+					fs.unlinkSync(tempPath);
+				}
+			}, 10000);
 		}
 	}
 

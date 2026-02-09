@@ -36,6 +36,7 @@
     - 记录完整的 `Alert Task` 日志，实现发送链路可追溯。
 - **📊 实时看板**: Grafana 风格的监控界面，直观展示系统运行健壮性。
 - **🔌 长连接模式 (WebSocket)**: 支持飞书开放平台长连接，无需公网 IP 或域名即可在内网环境接收事件回调。
+- **📎 附件支持**: 支持通过控制面板或 API 直接发送文件和图片。
 - **⚡ 高性能架构**: 基于 Bun + Hono 的全异步架构，毫秒级分发延迟。
 
 ---
@@ -102,10 +103,35 @@ docker-compose up -d
 ## 📡 Webhook 使用指南
 
 ### 1. 发送给个人 (Personal Inbox)
-**URL**: `POST /api/webhook/:your_token/dm`
+- **URL**: `POST /api/webhook/:your_token/dm`
+- **格式**: JSON 或 Multipart Form-Data
 
 ### 2. 发送到主题 (Topic)
-**URL**: `POST /api/webhook/:your_token/topic/:topic_slug`
+- **URL**: `POST /api/webhook/:your_token/topic/:topic_slug`
+
+### 使用示例 (curl)
+
+**发送纯文字 (JSON):**
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"content":{"text":"你好，世界"}}' \
+  http://localhost:3000/api/webhook/YOUR_TOKEN/dm
+```
+
+**发送文件 (Multipart):**
+```bash
+curl -X POST \
+  -F "content={\"text\":\"请查看附件\"}" \
+  -F "file=@/path/to/report.pdf" \
+  http://localhost:3000/api/webhook/YOUR_TOKEN/dm
+```
+
+**发送图片:**
+```bash
+curl -X POST \
+  -F "image=@/path/to/screenshot.png" \
+  http://localhost:3000/api/webhook/YOUR_TOKEN/dm
+```
 
 ---
 

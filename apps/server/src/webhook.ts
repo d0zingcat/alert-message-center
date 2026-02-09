@@ -17,6 +17,67 @@ interface Recipient {
 
 const webhook = new Hono();
 
+const getRequestBody = async (c: any) => {
+	const contentType = c.req.header("Content-Type") || "";
+	let body: Record<string, any>;
+
+	if (contentType.includes("application/json")) {
+		try {
+			body = await c.req.json();
+		} catch (_e) {
+			throw new Error("Invalid JSON body");
+		}
+	} else if (
+		contentType.includes("multipart/form-data") ||
+		contentType.includes("application/x-www-form-urlencoded")
+	) {
+		body = await c.req.parseBody();
+		// Handle stringified JSON fields in multipart
+		const complexFields = ["content", "card", "post"];
+		for (const field of complexFields) {
+			if (typeof body[field] === "string") {
+				try {
+					body[field] = JSON.parse(body[field]);
+				} catch {
+					// Not JSON, leave as is
+				}
+			}
+		}
+	} else {
+		// Fallback: try parsing as JSON
+		try {
+			const text = await c.req.text();
+			if (!text || text.trim() === "") {
+				throw new Error("Empty body");
+			}
+			body = JSON.parse(text);
+		} catch (_e) {
+			throw new Error("Invalid or missing request body");
+		}
+	}
+
+	// Proxy upload if files are present
+	const file = Array.isArray(body.file) ? body.file[0] : body.file;
+	if (file instanceof File) {
+		const buffer = Buffer.from(await file.arrayBuffer());
+		const fileType = (body.file_type as any) || "stream";
+		const fileName = (body.file_name as string) || file.name;
+		const fileKey = await feishuClient.uploadFile(fileType, fileName, buffer);
+		body.file_key = fileKey;
+		delete body.file;
+	}
+
+	const image = Array.isArray(body.image) ? body.image[0] : body.image;
+	if (image instanceof File) {
+		const buffer = Buffer.from(await image.arrayBuffer());
+		const imageKey = await feishuClient.uploadImage(buffer);
+		body.image_key = imageKey;
+		delete body.image;
+	}
+
+	return { ...body };
+};
+
 const dispatchAlert = async (
 	c: any,
 	topic: any,
@@ -90,65 +151,91 @@ const dispatchAlert = async (
 	Promise.allSettled(
 		allRecipients.map(async (recipient) => {
 			try {
-				// Construct message content
-				let msgType = body.msg_type || "text";
-				let content = body.content;
+				// Construct messages list
+				const messagesToSend: { type: string; content: any }[] = [];
 
-				// Special handling for incomplete payloads (missing 'content')
-				if (!content) {
-					// 1. Special case: Unwrap 'card' if provided (convenience for user)
+				// 1. Text content
+				if (body.content) {
+					const content = JSON.parse(JSON.stringify(body.content));
+					const msgType = body.msg_type || "text";
+					// Add prefix for text
+					if (msgType === "text" && content.text) {
+						content.text = `[${topic.name}]\n${content.text}`;
+					}
+					// Add prefix for interactive
+					if (msgType === "interactive" && content.header) {
+						content.header.title.content = `[${topic.name}] ${content.header.title.content}`;
+					}
+					messagesToSend.push({ type: msgType, content });
+				}
+
+				// 2. Image
+				if (body.image_key) {
+					messagesToSend.push({
+						type: "image",
+						content: { image_key: body.image_key },
+					});
+				}
+
+				// 3. File
+				if (body.file_key) {
+					messagesToSend.push({
+						type: "file",
+						content: { file_key: body.file_key },
+					});
+				}
+
+				// 4. Fallback for no explicit content/attachment keys
+				if (messagesToSend.length === 0) {
+					let msgType = body.msg_type || "text";
+					let content = body.content;
+
 					if (body.card) {
 						content = body.card;
 						if (!msgType) msgType = "interactive";
 					} else {
-						// 2. Pass-through strategy: Use rest of body as content
-						// Exclude keys that are definitely not part of content
 						const { msg_type, token, ...rest } = body;
 						content = rest;
-
-						// 3. Infer msgType if missing
 						if (!msgType) {
 							if (body.post) msgType = "post";
-							else if (body.file_key && body.image_key)
-								msgType = "media"; // Media has both
+							else if (body.file_key && body.image_key) msgType = "media";
 							else if (body.image_key) msgType = "image";
 							else if (body.file_key) msgType = "file";
 							else if (body.audio_key) msgType = "audio";
 							else if (body.sticker_key) msgType = "sticker";
 							else if (body.chat_id) msgType = "share_chat";
 							else if (body.user_id) msgType = "share_user";
-							else if (body.header || body.elements)
-								msgType = "interactive"; // Unwrapped card
+							else if (body.header || body.elements) msgType = "interactive";
 							else {
-								// Fallback to text
 								msgType = "text";
-								// For text, content must be simple or stringified
 								content = { text: JSON.stringify(body, null, 2) };
 							}
 						}
 					}
-				} else {
-					// Deep clone content to avoid mutating shared object for parallel requests if we modify it
-					content = JSON.parse(JSON.stringify(content));
+					// Add prefix for inferred types
+					if (msgType === "text" && content.text) {
+						content.text = `[${topic.name}]\n${content.text}`;
+					}
+					messagesToSend.push({ type: msgType, content });
 				}
 
-				// Add metadata
-				if (msgType === "text" && content.text) {
-					content.text = `[${topic.name}]\n${content.text}`;
-				}
-				if (msgType === "interactive" && content.header) {
-					content.header.title.content = `[${topic.name}] ${content.header.title.content}`;
+				let successCount = 0;
+				for (const msg of messagesToSend) {
+					await feishuClient.sendMessage(
+						recipient.feishuId,
+						recipient.idType,
+						msg.type,
+						msg.content,
+						body.uuid,
+					);
+					successCount++;
 				}
 
-				await feishuClient.sendMessage(
-					recipient.feishuId,
-					recipient.idType,
-					msgType,
-					content,
-					body.uuid,
-				);
-
-				return { recipientId: recipient.id, status: "sent", error: null };
+				return {
+					recipientId: recipient.id,
+					status: successCount > 0 ? "sent" : "failed",
+					error: null,
+				};
 			} catch (error: unknown) {
 				const errorMessage =
 					error instanceof Error ? error.message : String(error);
@@ -277,13 +364,9 @@ webhook.post("/topic/:slug", async (c) => {
 	// biome-ignore lint/suspicious/noExplicitAny: Webhook body can be any arbitrary JSON
 	let body: Record<string, any>;
 	try {
-		const rawBody = await c.req.text();
-		if (!rawBody || rawBody.trim() === "") {
-			return c.json({ error: "Empty body" }, 400);
-		}
-		body = JSON.parse(rawBody);
-	} catch (_e) {
-		return c.json({ error: "Invalid JSON body" }, 400);
+		body = await getRequestBody(c);
+	} catch (e) {
+		return c.json({ error: (e as Error).message }, 400);
 	}
 
 	return dispatchAlert(c, topic, body, null);
@@ -328,13 +411,9 @@ webhook.post("/:token/topic/:slug", async (c) => {
 	// biome-ignore lint/suspicious/noExplicitAny: Webhook body can be any arbitrary JSON
 	let body: Record<string, any>;
 	try {
-		const rawBody = await c.req.text();
-		if (!rawBody || rawBody.trim() === "") {
-			return c.json({ error: "Empty body" }, 400);
-		}
-		body = JSON.parse(rawBody);
-	} catch (_e) {
-		return c.json({ error: "Invalid JSON body" }, 400);
+		body = await getRequestBody(c);
+	} catch (e) {
+		return c.json({ error: (e as Error).message }, 400);
 	}
 
 	return dispatchAlert(c, topic, body, user);
@@ -374,13 +453,9 @@ webhook.post("/:token/dm", async (c) => {
 	// biome-ignore lint/suspicious/noExplicitAny: Webhook body can be any arbitrary JSON
 	let body: Record<string, any>;
 	try {
-		const rawBody = await c.req.text();
-		if (!rawBody || rawBody.trim() === "") {
-			return c.json({ error: "Empty body" }, 400);
-		}
-		body = JSON.parse(rawBody);
-	} catch (_e) {
-		return c.json({ error: "Invalid JSON body" }, 400);
+		body = await getRequestBody(c);
+	} catch (e) {
+		return c.json({ error: (e as Error).message }, 400);
 	}
 
 	// 1. Create Task (topicSlug is null for DM)
@@ -399,107 +474,100 @@ webhook.post("/:token/dm", async (c) => {
 	// 2. Send Message
 	(async () => {
 		try {
-			let msgType = body.msg_type || "text";
-			let content = body.content;
+			const messagesToSend: { type: string; content: any }[] = [];
 
-			// Special handling for incomplete payloads (missing 'content')
-			if (!content) {
-				// 1. Interactive / Card
+			// Text content
+			if (body.content) {
+				const content = JSON.parse(JSON.stringify(body.content));
+				messagesToSend.push({ type: body.msg_type || "text", content });
+			}
+
+			// Image
+			if (body.image_key) {
+				messagesToSend.push({
+					type: "image",
+					content: { image_key: body.image_key },
+				});
+			}
+
+			// File
+			if (body.file_key) {
+				messagesToSend.push({
+					type: "file",
+					content: { file_key: body.file_key },
+				});
+			}
+
+			// Fallback: if no explicit content/attachment keys, check other fields
+			if (messagesToSend.length === 0) {
+				let msgType = body.msg_type || "text";
+				let content = body.content;
+
 				if ((msgType === "interactive" || !msgType) && body.card) {
 					msgType = "interactive";
 					content = body.card;
-				}
-				// 2. Post (Rich Text)
-				else if ((msgType === "post" || !msgType) && body.post) {
+				} else if ((msgType === "post" || !msgType) && body.post) {
 					msgType = "post";
 					content = { post: body.post };
-				}
-				// 3. Image
-				else if ((msgType === "image" || !msgType) && body.image_key) {
-					msgType = "image";
-					content = { image_key: body.image_key };
-				}
-				// 4. File
-				else if ((msgType === "file" || !msgType) && body.file_key) {
-					msgType = "file";
-					content = { file_key: body.file_key };
-				}
-				// 5. Audio
-				else if ((msgType === "audio" || !msgType) && body.audio_key) {
+				} else if ((msgType === "audio" || !msgType) && body.audio_key) {
 					msgType = "audio";
 					content = { file_key: body.audio_key };
-				}
-				// 6. Media (Video)
-				else if (
+				} else if (
 					(msgType === "media" || !msgType) &&
 					body.file_key &&
 					body.image_key
 				) {
 					msgType = "media";
 					content = { file_key: body.file_key, image_key: body.image_key };
-				}
-				// 7. Sticker
-				else if ((msgType === "sticker" || !msgType) && body.sticker_key) {
+				} else if ((msgType === "sticker" || !msgType) && body.sticker_key) {
 					msgType = "sticker";
 					content = { file_key: body.sticker_key };
-				}
-				// 8. Share Chat
-				else if ((msgType === "share_chat" || !msgType) && body.chat_id) {
+				} else if ((msgType === "share_chat" || !msgType) && body.chat_id) {
 					msgType = "share_chat";
 					content = { chat_id: body.chat_id };
-				}
-				// 9. Share User
-				else if ((msgType === "share_user" || !msgType) && body.user_id) {
+				} else if ((msgType === "share_user" || !msgType) && body.user_id) {
 					msgType = "share_user";
 					content = { user_id: body.user_id };
-				}
-				// Fallback
-				else {
+				} else {
+					const { msg_type, token, ...rest } = body;
+					content = rest;
 					if (!msgType || msgType === "text") {
 						msgType = "text";
-						content = { text: JSON.stringify(body, null, 2) };
+						content = { text: JSON.stringify(rest, null, 2) };
 					}
 				}
-			} else {
-				// Deep clone content to avoid mutating shared object for parallel requests if we modify it
-				content = JSON.parse(JSON.stringify(content));
+				messagesToSend.push({ type: msgType, content });
 			}
 
-			// Add metadata
-			if (msgType === "text" && content.text) {
-				content.text = `[Direct Message]\n${content.text}`;
-			}
-			if (msgType === "interactive" && content.header) {
-				content.header.title.content = `[DM] ${content.header.title.content}`;
+			let totalSuccess = 0;
+			for (const msg of messagesToSend) {
+				await feishuClient.sendMessage(
+					user.feishuUserId,
+					"open_id",
+					msg.type,
+					msg.content,
+					body.uuid,
+				);
+				totalSuccess++;
 			}
 
-			const idType = user.feishuUserId.startsWith("ou_")
-				? "open_id"
-				: "user_id";
-			const uuid = body.uuid || crypto.randomUUID();
-			await feishuClient.sendMessage(
-				user.feishuUserId,
-				idType,
-				msgType,
-				content,
-				uuid,
-			);
+			const finalStatus = totalSuccess > 0 ? "completed" : "failed";
 
 			// Update Task
 			await db
 				.update(alertTasks)
 				.set({
-					status: "completed",
-					successCount: 1,
+					status: finalStatus,
+					successCount: totalSuccess === messagesToSend.length ? 1 : 0, // In DM case, 1 recipient
 					updatedAt: new Date(),
 				})
 				.where(eq(alertTasks.id, task.id));
 
-			// Insert Log
+			// Log Sent
 			await db.insert(alertLogs).values({
 				taskId: task.id,
 				userId: user.id,
-				status: "sent" as const,
+				status: totalSuccess > 0 ? "sent" : "failed",
 			});
 		} catch (error: unknown) {
 			const errorMessage =
